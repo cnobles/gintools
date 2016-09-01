@@ -13,10 +13,13 @@ generate_posid(sites = NULL)
 generate_posid(seqnames = NULL, strand = NULL, start = NULL, end = NULL)
 }
 \arguments{
-  \item{sites}{
-%%     ~~Describe \code{x} here~~
+  \item{sites}{: a GRanges object where each row represents one integrated element.}
+  \item{seqnames}{: a character vector of chromosomes for integrated elements, i.e. chr1, chr3, chrX.}
+  \item{strand}{: orientation or strand on which the integrated element is on (+, -, *)}
+  \item{start}{: the lower numerical position of the integrated element, considered the start for "+" integrated elements.}
+  \item{end}{: the greater numerical position of the integrated element, considered the end for "+" integrated elements.}
 }
-}
+
 \details{
 %%  ~~ If necessary, more details than the description above ~~
 }
@@ -31,7 +34,7 @@ generate_posid(seqnames = NULL, strand = NULL, start = NULL, end = NULL)
 %% ~put references to the literature/web site here ~
 }
 \author{
-%%  ~~who you are~~
+Christopher Nobles, Ph.D.
 }
 \note{
 %%  ~~further notes~~
@@ -43,14 +46,16 @@ generate_posid(seqnames = NULL, strand = NULL, start = NULL, end = NULL)
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+chr <- c("chr1", "chr3", "chrX")
+strands <- c("+", "-", "+")
+starts <- c(900231, 13254892, 603292)
+ends <- c(900431, 13255292, 603592)
+ranges <- IRanges(start = starts, end = ends)
+gr <- GRanges(seqnames = chr, ranges = ranges, strand = strands)
 
-## The function is currently defined as
-function (x)
-{
-  }
+generate_posid(sites = gr)
+
+generate_posid(seqnames = chr, strand = strands, start = starts, end = ends)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
