@@ -4,6 +4,12 @@ Title: Genomic DNA Integration Analysis Tools
 Version: 0.1.0
 Author: Christopher Nobles
 Maintainer: Christopher Nobles <cnobles@upenn.edu>
-Description: Tools used for analysis and interpretation of genomic DNA integration elements, such as retroviruses, retroviral-based gene therapy vectors, retrotransposons, and more.
+Description: Tools used for analysis and interpretation of genomic DNA
+    integration elements, such as retroviruses, retroviral-based gene therapy
+    vectors, retrotransposons, and more.
 License: GNU General Public License v3
 LazyData: TRUE
+Imports: dplyr,
+    GenomicRanges,
+    igraph
+
