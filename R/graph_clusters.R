@@ -1,8 +1,8 @@
 #' Generate a graph from integrations sites within a specified genomic gap
 #' distance
 #'
-#' \code{graph_overlaps} generates a graph connecting each integration sites
-#' within a specified genomic gap distance.
+#' \code{graph_clusters} generates a partial undirected graph connecting each
+#' integration sites within a specified genomic gap distance.
 #'
 #' @description Given a set of integration sites, this function generates a
 #' partial undirected graph of integration sites where nodes are the specific
@@ -14,7 +14,7 @@
 #' occurances, which are always connected to one axil node by definition.
 #'
 #' @usage
-#' graph_overlaps(sites, gap)
+#' graph_clusters(sites, gap)
 #'
 #' @param sites a GRanges object where each row is a single integration site or
 #' range.
@@ -30,14 +30,14 @@
 #'     width = seq(20, 26, 1)),
 #'   strand = rep("+", 7))
 #'
-#' graph <- graph_overlaps(sites, gap = 5L)
+#' graph <- graph_clusters(sites, gap = 5L)
 #'
 #' plot.igraph(graph)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export graph_overlaps
+#' @export graph_clusters
 
-graph_overlaps <- function(sites, gap){
+graph_clusters <- function(sites, gap){
   sites$clus.key <- 1:length(sites)
   fl.sites <- flank(sites, width = -1, start = TRUE)
   rd.sites <- reduce(fl.sites, min.gapwidth = gap, with.revmap = TRUE)
