@@ -1,4 +1,46 @@
-generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL, end=NULL, ...){
+#' Generate position IDs.
+#'
+#' \code{generate_posid} generates a character vector of position IDs
+#'
+#' @description Given a set of genomic integration positions, the
+#' function generates a character vector of integrated positions in the
+#' following format: chr(+/-)pos, where chr is the chromosome, (+/-) designates
+#' the orientation of the integration, and pos is the position of the integrated
+#' element.
+#'
+#' @usage
+#' generate_posid(sites = NULL)
+#'
+#' generate_posid(seqnames = NULL, strand = NULL, start = NULL, end = NULL)
+#'
+#' @param sites a GRanges object where each row represents one integrated
+#' element.
+#' @param seqnames a character vector of chromosomes for integrated elements,
+#' i.e. chr1, chr3, chrX.
+#' @param strand orientation or strand on which the integrated element
+#' is on (+, -, *)
+#' @param start the lower numerical position of the integrated element,
+#' considered the start for "+" integrated elements.
+#' @param end the greater numerical position of the integrated element,
+#' considered the end for "+" integrated elements.
+#'
+#' @examples
+#' chr <- c("chr1", "chr3", "chrX")
+#' strands <- c("+", "-", "+")
+#' starts <- c(900231, 13254892, 603292)
+#' ends <- c(900431, 13255292, 603592)
+#' ranges <- IRanges(start = starts, end = ends)
+#' gr <- GRanges(seqnames = chr, ranges = ranges, strand = strands)
+#'
+#' generate_posid(sites = gr)
+#'
+#' generate_posid(seqnames = chr, strand = strands, start = starts, end = ends)
+#'
+#' @author Christopher Nobles, Ph.D.
+#' @export generate_posid
+
+generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL,
+                           end=NULL){
   if(length(sites) != 0){
     if(class(sites) == "GRanges"){
       chr <- as.character(seqnames(sites))
@@ -6,11 +48,13 @@ generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL, e
       pos <- ifelse(strand == "+", start(sites), end(sites))
       posID <- paste0(chr, strand, pos)
     }else{
-      message("Sites provided not a GRanges object, please use alternative inputs.")
+      message("Sites provided not a GRanges object,
+              please use alternative inputs.")
       stop()
     }
   }else{
-    if(length(seqnames) != 0 & length(strand) != 0 & length(start) != 0 & length(end) != 0){
+    if(length(seqnames) != 0 & length(strand) != 0 &
+       length(start) != 0 & length(end) != 0){
       chr <- as.character(seqnames)
       strand <- as.vector(strand)
       start <- as.integer(start)

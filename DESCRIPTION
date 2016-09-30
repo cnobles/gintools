@@ -9,7 +9,14 @@ Description: Tools used for analysis and interpretation of genomic DNA
     vectors, retrotransposons, and more.
 License: GNU General Public License v3
 LazyData: TRUE
-Imports: dplyr,
-    GenomicRanges,
-    igraph
-
+Depends:
+    R (>= 3.2.2),
+    dplyr (>= 0.5.0),
+    GenomicRanges (>= 1.22.4),
+    igraph (>= 1.0.1),
+    IRanges (>= 2.4.8)
+Imports:
+Suggests:
+    roxygen2,
+    devtools
+RoxygenNote: 5.0.1
