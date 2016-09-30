@@ -9,3 +9,5 @@ db_to_granges() : Converts an INSPIIRED database query into a GRanges object.
 graph_clusters() : Generates a partial undirected graph connecting integration sites within a specified genomic gap distance.
 
 serial_cluster() : Returns a GRanges object of the same length and order as input with additional metadata columns specifying the group or clusterID of given nt windows.
+
+track_clones() : Returns a GRangesList of integration sites shared between multiple GRanges objects.
