@@ -32,14 +32,23 @@
 #' @export serial_cluster
 
 serial_cluster <- function(sites, gaps = c(0L, 1L, 2L)){
-  if(is.null(names(sites))) names(sites) <- seq(1:length(sites))
+  if(is.null(names(sites))){
+    wasNull <- TRUE
+    names(sites) <- seq(1:length(sites))
+  }else{
+    wasNull <- FALSE
+  }
   origin_order <- names(sites)
 
   lapply(gaps, function(gap){
     clusID <- paste0("clusID.", gap, "nt")
     fl.sites <- flank(sites, -1, start = TRUE)
-    red.sites <- reduce(fl.sites, min.gapwidth = gap, with.revmap = TRUE)
-    revmap <- red.sites$revmap
+    red.sites <- reduce(
+      fl.sites,
+      min.gapwidth = gap,
+      with.revmap = TRUE)
+
+    revmap <- as.list(red.sites$revmap)
     groups <- Rle(
       values = 1:length(revmap),
       lengths = sapply(revmap, length)
@@ -48,6 +57,6 @@ serial_cluster <- function(sites, gaps = c(0L, 1L, 2L)){
     mcols(mod.sites)[, clusID] <- groups
     sites <<- mod.sites[origin_order]
   })
-
+  if(wasNull) names(sites) <- NULL
   sites
 }
