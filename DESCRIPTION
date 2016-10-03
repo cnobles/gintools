@@ -14,7 +14,8 @@ Depends:
     dplyr (>= 0.4.3),
     GenomicRanges (>= 1.22.1),
     igraph (>= 1.0.1),
-    IRanges (>= 2.4.5)
+    IRanges (>= 2.4.5),
+    plyr (>= 1.8.3)
 Imports:
 Suggests:
     devtools,

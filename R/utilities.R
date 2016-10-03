@@ -1,3 +1,33 @@
+#' Generate a test GRanges object
+#'
+#' @usage .generate_test_granges(n_sites = 5, n_reads_p_site = 20, site_range = 1:1000, read_width_range = 30:100)
+#'
+#' @param n_sites number of sites to generate
+#' @param n_reads_p_site number of reads per site
+#' @param site_range numeric vector to sample from for postion of the integration
+#' sites
+#' @param read_width_range range of widths to sample from for each read
+#'
+#' @details Varies the integration start position in with a normal distribution
+#' around the random integration site and then assignes a random uniform
+#' distribution of widths for the sites.
+#'
+#' @author Christopher Nobles, Ph.D.
+#'
+.generate_test_granges <- function(n_sites = 5, n_reads_p_site = 20,
+                                   site_range = 1:1000, read_width_range = 30:100){
+  positions <- sample(site_range, n_sites, replace = TRUE)
+  GRanges(
+    seqnames = rep("chr1", n_sites*n_reads_p_site),
+    ranges = IRanges(
+      start = sapply(positions, function(x){
+        x + sample(round(rnorm(n_reads_p_site, mean = 0, sd = 1)))
+      }),
+      width = sample(read_width_range, n_reads_p_site, replace = TRUE)),
+    strand = rep("+", n_sites*n_reads_p_site)
+  )
+}
+
 #' Wrapper around .clusterSites() for standardizing integration site positions
 #' given integration site distributions.
 #'
@@ -9,7 +39,7 @@
 #' @author Bushman Lab
 
 .standardizeSites <- function(unstandardizedSites){
-  if( ! length(unstandardizedSites) > 0){
+  if( ! length(unstandardizedSites) > 0 ){
     return(unstandardizedSites)
   }
   #Get called start values for clustering
@@ -112,42 +142,35 @@
   posID2 <- freq <- belowQuartile <- isMax <- isClosest <- val <- NULL
   ismaxFreq <- dp <- NULL
 
-  .checkArgsSetDefaults_ALIGNed <- function() {
+  if("pslFile" %in% names(formals()) | "files" %in% names(formals())) {
+    if(is.null(files) | length(files)==0) {
+      stop("files parameter empty. Please supply a filename to be read.")
+    }
 
-    checks <- expression(
-      if("pslFile" %in% names(formals()) | "files" %in% names(formals())) {
-        if(is.null(files) | length(files)==0) {
-          stop("files parameter empty. Please supply a filename to be read.")
-        }
+    if(any(grepl("\\*|\\$|\\+|\\^",files))) {
+      ## vector of filenames
+      files <- list.files(path=dirname(files), pattern=basename(files),
+                          full.names=TRUE)
+    }
 
-        if(any(grepl("\\*|\\$|\\+|\\^",files))) {
-          ## vector of filenames
-          files <- list.files(path=dirname(files), pattern=basename(files),
-                              full.names=TRUE)
-        }
-
-        if(length(files)==0) {
-          stop("No file(s) found with given paramter in files:", files)
-        }
-      },
-
-      if("psl.rd" %in% names(formals())) {
-        if(!is.null(psl.rd)) {
-          if(length(psl.rd)==0 | !is(psl.rd,"GRanges")) {
-            stop("psl.rd paramter is empty or not a GRanges object")
-          }
-        }
-      },
-
-      if("parallel" %in% names(formals())) {
-        dp <- if(parallel & .Platform$OS.type != "windows") { bpparam() } else { SerialParam() }
-      }
-    )
-
-    eval.parent(checks)
+    if(length(files)==0) {
+      stop("No file(s) found with given paramter in files:", files)
+    }
   }
 
-  .checkArgsSetDefaults_ALIGNed()
+  if("psl.rd" %in% names(formals())) {
+    if(!is.null(psl.rd)) {
+      if(length(psl.rd)==0 | !is(psl.rd,"GRanges")) {
+        stop("psl.rd paramter is empty or not a GRanges object")
+      }
+    }
+  }
+
+  if(parallel & .Platform$OS.type != "windows"){
+    dp <- bpparam()
+  }else{
+    dp <- SerialParam()
+  }
 
   if(is.null(psl.rd)) {
     stopifnot(!is.null(posID))
@@ -276,10 +299,10 @@
   # get frequencies of each posID & value combination by grouping #
   groups <- if(is.null(grouping)) { "" } else { grouping }
   weight2 <- if(is.null(weight)) { 1 } else { weight }
-  sites <- arrange(data.frame(posID, value, grouping=groups,
+  sites <- dplyr::arrange(data.frame(posID, value, grouping=groups,
                               weight=weight2, posID2=paste0(groups, posID),
                               stringsAsFactors=FALSE), posID2, value)
-  sites <- count(sites, c("posID","value","grouping","posID2"), wt_var="weight")
+  sites <- plyr::count(sites, c("posID","value","grouping","posID2"), wt_var="weight")
   rm("groups","weight2")
 
   if(byQuartile) {
@@ -373,7 +396,6 @@
     sites <- split(sites, sites$grouping)
 
     sites <- bplapply(sites, function(x) {
-
       ## find overlapping positions using findOverlaps() using
       ## maxgap adjusted by windowSize!
       sites.gr <- with(x, GRanges(seqnames=posID2, IRanges(start=value, width=1),
@@ -381,10 +403,10 @@
 
       # the key part is ignoreSelf=TRUE,ignoreRedundant=FALSE..
       # helps overwrite values at later step
-      res <- as.data.frame(as.matrix(findOverlaps(sites.gr, ignoreSelf=TRUE,
+      res <- as.data.frame(findOverlaps(sites.gr, ignoreSelf=TRUE,
                                                   ignoreRedundant=FALSE,
                                                   select="all",
-                                                  maxgap=windowSize)))
+                                                  maxgap=windowSize))
       if(nrow(res)>0) {
         # add accessory columns to dictate decision making!
         # q = query, s = subject, val = value, freq = frequency of query/subject
@@ -414,7 +436,7 @@
 
         ## VIP step...this is what merges high value to low
         ## value for ties in the hash structure below!!!
-        res <- arrange(res, plyr::desc(queryHits), val)
+        res <- dplyr::arrange(res, plyr::desc(queryHits), val)
         clustered <- unique(subset(res,ismaxFreq)[,c("queryHits","val")])
         clustered <- with(clustered, split(val, queryHits))
 
@@ -436,13 +458,15 @@
       }
       x
     }, BPPARAM=dp)
-    sites <- rbind.fill(sites)
+    sites <- plyr::rbind.fill(sites)
   }
 
   message("\t - Adding clustered value frequencies.")
+
   # get frequency of clusteredValue
-  counts <- count(sites[,-grep("value",names(sites),fixed=TRUE)],
-                  c("posID2","clusteredValue"), wt_var="freq")
+  counts <- dplyr::select(sites, posID2, clusteredValue, freq) %>%
+    plyr::count(., vars = c("posID2","clusteredValue"), wt_var = "freq")
+
   names(counts)[grep("freq",names(counts),fixed=TRUE)] <- "clusteredValue.freq"
   sites <- merge(sites,counts)
 
