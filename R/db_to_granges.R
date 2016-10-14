@@ -53,8 +53,8 @@ db_to_granges <- function(dfr_from_db, keep.additional.columns = TRUE,
   dfr <- dfr[, !duplicated(names(dfr))]
 
   if(any(names(dfr) == "length")){
-    dfr$breakpoint <- dfr$postion +
-      ifelse(dfr$strand == "+", dfr$length, -dfr$length)
+    breakpoints <- ifelse(dfr$strand == "+", dfr$length, -dfr$length)
+    dfr$breakpoint <- dfr$position + breakpoints
   }
 
   ranges <- IRanges(start = ifelse(dfr$strand == "+", dfr$position, dfr$breakpoint),
