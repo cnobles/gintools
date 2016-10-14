@@ -44,7 +44,7 @@
 #' track_clones(grl, gap = 0L, track.origin = TRUE)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export track_clones
+#' @export
 
 track_clones <- function(sites.list, gap = 5L, track.origin = TRUE){
   if(class(sites.list) == "list"){grl.sites <- GRangesList(sites.list)}

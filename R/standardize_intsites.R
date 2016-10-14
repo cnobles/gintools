@@ -1,37 +1,62 @@
-#' gr <- GRanges(
-#'   seqnames = rep("chr1", 100),
-#'   ranges = IRanges(
-#'     start = sample(1:200, 100, replace = TRUE),
-#'     width = sample(30:200, 100, replace = TRUE)),
-#'   strand = rep("+", 100))
+#' Standardize genomic integration site positions within a dataset
 #'
+#' \code{standardize_intsites} returns a GRanges object where the integration
+#' site positions have been standardized with sites within the gap distance.
+#'
+#' @description Given a GRanges object ...
+#'
+#' @usage
+#' standardize_intsites(sites)
+#'
+#' standardize_intsites(sites, std.gap = 1L, standardize_breakpoints = FALSE,
+#' get.analysis.data = FALSE, calc.cluster.stats = FALSE)
+#'
+#' @param sites
+#'
+#' @examples
+#' gr <- gintools:::.generate_test_granges()
+#'
+#' standardize_intsites(gr)
+#'
+#' @author Christopher Nobles, Ph.D.
+#' @export
 
-
-standardize_intsites <- function(unstandardized.sites,
-                                 std.gap = 1L,
+standardize_intsites <- function(sites, std.gap = 1L,
                                  standardize_breakpoints = FALSE,
                                  get.analysis.data = FALSE,
                                  calc.cluster.stats = FALSE){
 
   #Build data.frame with called info and cluster information
-  raw.sites <- unstandardized.sites
-  raw.positions <- flank(granges(raw.sites), -1, start = TRUE)
-  raw.breakpoints <- flank(granges(raw.sites), -1, start = FALSE)
-  raw.positions <- serial_cluster(raw.positions, gaps = c(std.gap, 5L))
-  raw.breakpoints <- serial_cluster(raw.breakpoints, gaps = c(std.gap))
+  ori.sites <- sites
+  ori.positions <- flank(granges(ori.sites), -1, start = TRUE)
+  ori.breakpoints <- flank(granges(ori.sites), -1, start = FALSE)
+  ori.positions <- serial_cluster(ori.positions, gaps = c(std.gap, 5L))
+  ori.breakpoints <- serial_cluster(ori.breakpoints, gaps = c(std.gap))
   clus.dfr <- data.frame(
-    "order" = seq(1:length(raw.sites)),
-    "seqnames" = seqnames(raw.sites),
-    "strand" = strand(raw.sites),
-    "called.pos" = start(raw.positions),
-    "called.bp" = end(raw.breakpoints),
-    "window.clus" = as.character(as.data.frame(mcols(raw.positions))[,2]),
-    "pos.clus" = as.character(as.data.frame(mcols(raw.positions))[,1]),
-    "bp.clus" = as.character(as.data.frame(mcols(raw.breakpoints))[,1]),
+    "order" = seq(1:length(ori.sites)),
+    "seqnames" = seqnames(ori.sites),
+    "strand" = strand(ori.sites),
+    "called.pos" = start(ori.positions),
+    "called.bp" = end(ori.breakpoints),
+    "window.clus" = mcols(raw.positions)[,2],
+    "pos.clus" = mcols(raw.positions)[,1],
+    "bp.clus" = mcols(raw.breakpoints)[,1],
     stringsAsFactors = FALSE)
+
+  #Identify and correct position cluster assignment given
 
   #Using the cluster membership for both ends of the reads, determine the
   #standardized membership for both ends
+
+  if(correct.with.bps){
+    #Identify closely related clusters by bp.clus
+    clus.share.bp <- select(clus.dfr, pos.clus, bp.clus) %>%
+      full_join(., ., by = "bp.clus") %>%
+      select(pos.clus.x, pos.clus.y) %>%
+      filter(pos.clus.x != pos.clus.y) %>%
+      distinct()
+  }
+
   clus.list <- lapply(split(clus.dfr, clus.dfr$window.clus), function(clus.dfr){
     bp.pos.clus <- lapply(unique(clus.dfr$bp.clus), function(bp){
       unique(clus.dfr[clus.dfr$bp.clus == bp,]$pos.clus)

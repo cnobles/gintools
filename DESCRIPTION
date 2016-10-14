@@ -11,15 +11,16 @@ License: GNU General Public License v3
 LazyData: TRUE
 Depends:
     R (>= 3.2.2),
-    dplyr (>= 0.4.3),
     GenomicRanges (>= 1.22.1),
-    igraph (>= 1.0.1),
     IRanges (>= 2.4.5),
-    plyr (>= 1.8.3)
 Imports:
+    igraph
 Suggests:
     devtools,
+    dplyr,
     geneRxCluster,
+    Matrix,
+    plyr,
     roxygen2,
     sonicLength
 RoxygenNote: 5.0.1

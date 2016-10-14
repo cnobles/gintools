@@ -35,7 +35,7 @@
 #' plot.igraph(graph)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export graph_clusters
+#' @export
 
 graph_clusters <- function(sites, gap){
   sites$clus.key <- 1:length(sites)
@@ -46,7 +46,7 @@ graph_clusters <- function(sites, gap){
     values = sites[sapply(revmap, "[[", 1)]$clus.key,
     lengths = sapply(revmap, length)
   ))
-  nodes <- sites[as.numeric(unlist(revmap))]$clus.key
+  nodes <- sites[unlist(as.list(revmap))]$clus.key
   edgelist <- unique(matrix( c(axil_nodes, nodes), ncol = 2 ))
   graph.edgelist(edgelist, directed = FALSE)
 }

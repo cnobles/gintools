@@ -2,23 +2,30 @@
 % Please edit documentation in R/standardize_intsites.R
 \name{standardize_intsites}
 \alias{standardize_intsites}
-\title{gr <- GRanges(
-  seqnames = rep("chr1", 100),
-  ranges = IRanges(
-    start = sample(1:200, 100, replace = TRUE),
-    width = sample(30:200, 100, replace = TRUE)),
-  strand = rep("+", 100))}
+\title{Standardize genomic integration site positions within a dataset}
 \usage{
-standardize_intsites(unstandardized.sites, std.gap = 1L,
-  standardize_breakpoints = FALSE, get.analysis.data = FALSE,
-  calc.cluster.stats = FALSE)
+standardize_intsites(sites)
+
+standardize_intsites(sites, std.gap = 1L, standardize_breakpoints = FALSE,
+get.analysis.data = FALSE, calc.cluster.stats = FALSE)
+}
+\arguments{
+\item{sites}{}
 }
 \description{
-gr <- GRanges(
-  seqnames = rep("chr1", 100),
-  ranges = IRanges(
-    start = sample(1:200, 100, replace = TRUE),
-    width = sample(30:200, 100, replace = TRUE)),
-  strand = rep("+", 100))
+Given a GRanges object ...
+}
+\details{
+\code{standardize_intsites} returns a GRanges object where the integration
+site positions have been standardized with sites within the gap distance.
+}
+\examples{
+gr <- gintools:::.generate_test_granges()
+
+standardize_intsites(gr)
+
+}
+\author{
+Christopher Nobles, Ph.D.
 }
 

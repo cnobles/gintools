@@ -9,12 +9,15 @@
 #' seqnames, starts, ends, and strands information as well as the sampleName and
 #' the specimen (parsed from the sampleName by the "-" delimiter). Additionally,
 #' if there are other data in columns of the data.frame, they can be transfered
-#' to the GRanges object by using the "keep.additional.columns = TRUE" option.
+#' to the GRanges object by using the "keep.additional.columns = TRUE" option,
+#' but will be dropped if FALSE. Additional columns will be have there column
+#' names switched to lower case, but this feature can be turned off by using the
+#' option 'lower_case = FALSE'.
 #'
 #' @usage
 #' db_to_granges(dfr_from_db)
 #'
-#' db_to_granges(dfr_from_db, keep.additional.columns = TRUE)
+#' db_to_granges(dfr_from_db, keep.additional.columns = TRUE, lower_case = TRUE)
 #'
 #' @param dfr_from_db a data.frame containing queried information from an
 #' INSPIIRED integration site database. Any data.frame can be used, but requires
@@ -22,6 +25,10 @@
 #'
 #' @param keep.additional.columns logical to specify whether to keep any columns
 #' besides those required in the data.frame.
+#'
+#' @param lower_case logical, default is TRUE. Changes additional column names
+#' to all lower case characters. FALSE leaves the additional column names as
+#' original format.
 #'
 #' @examples
 #' dfr <- data.frame(
@@ -38,10 +45,18 @@
 #' db_to_granges(dfr_from_db = dfr, keep.additional.columns = TRUE)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export db_to_granges
+#' @export
 
-db_to_granges <- function(dfr_from_db, keep.additional.columns = FALSE){
+db_to_granges <- function(dfr_from_db, keep.additional.columns = TRUE,
+                          lower_case = TRUE){
   dfr <- dfr_from_db
+  dfr <- dfr[, !duplicated(names(dfr))]
+
+  if(any(names(dfr) == "length")){
+    dfr$breakpoint <- dfr$postion +
+      ifelse(dfr$strand == "+", dfr$length, -dfr$length)
+  }
+
   ranges <- IRanges(start = ifelse(dfr$strand == "+", dfr$position, dfr$breakpoint),
                     end = ifelse(dfr$strand == "+", dfr$breakpoint, dfr$position))
   gr <- GRanges(seqnames = dfr$chr,
@@ -63,5 +78,6 @@ db_to_granges <- function(dfr_from_db, keep.additional.columns = FALSE){
   }
 
   mcols(gr) <- mcols
+  if(lower_case) names(mcols(gr)) <- tolower(names(mcols(gr)))
   gr
 }

@@ -37,7 +37,7 @@
 #' generate_posid(seqnames = chr, strand = strands, start = starts, end = ends)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export generate_posid
+#' @export
 
 generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL,
                            end=NULL){

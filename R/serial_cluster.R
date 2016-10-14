@@ -29,7 +29,7 @@
 #' serial_cluster(sites, gaps = c(1L, 5L, 10L))
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export serial_cluster
+#' @export
 
 serial_cluster <- function(sites, gaps = c(0L, 1L, 2L)){
   if(is.null(names(sites))){
