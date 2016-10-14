@@ -69,7 +69,7 @@ normalize_multihit_clusters <- function(multihits.gr, gap = 5L, grouping = NULL)
 
   base_clus <- 0 # Start count for multihitid's
 
-  norm.multi.grl <- lapply(multihits.gp, function(gr){
+  norm.multi.list <- lapply(multihits.gp, function(gr){
     key <- unique(data.frame(
       "multihitid" = as.character(gr$multihitid),
       "clusid" = gr$pos.clus,
@@ -102,8 +102,13 @@ normalize_multihit_clusters <- function(multihits.gr, gap = 5L, grouping = NULL)
     gr
   })
 
-  norm.multi.gr <- unlist(GRangesList(norm.multi.grl))
-  if(!is.null(grouping)) mcols(norm.multi.gr)$groups <- NULL
+  norm.multi.gr <- do.call(c, lapply(1:length(norm.multi.list), function(i)
+    norm.multi.list[[i]]))
+
+  if(!is.null(grouping)){
+    norm.multi.gr$groups <- NULL
+  }
+
   norm.multi.gr
 }
 
