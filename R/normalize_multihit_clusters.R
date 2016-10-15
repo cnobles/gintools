@@ -12,12 +12,14 @@
 #' site. For this reason, normalize_multihit_clusters uses the previously
 #' assigned multihitID and genomic positions to reassign multihitIDs across
 #' multiple samples. Input for the function needs to be a GRanges object with a
-#' metadata column labeled as "multihitid".
+#' metadata column labeled as "multihitid". Due to the large amount of
+#' computation, this function requires the 'parallel' package and the number of
+#' cores to run.
 #'
 #' @usage
 #' normalize_multihit_clusters(multihits.gr)
 #'
-#' normalize_multihit_clusters(multihits.gr, gap = 5L, grouping = NULL)
+#' normalize_multihit_clusters(multihits.gr, gap = 5L, grouping = NULL, cores = NULL)
 #'
 #' @param multihits.gr GRanges object with a column named 'multihitid'.
 #'
@@ -25,6 +27,9 @@
 #'
 #' @param grouping Character, name of the column used to assign groups that will
 #' not be compared to one another. Such as 'patient'.
+#'
+#' @param cores integer, the number of cores to use during processing. Data will
+#' be split by grouping and each group will be processed on a single core.
 #'
 #' @examples
 #' dfr <- data.frame(
@@ -48,13 +53,16 @@
 #' # Group by patient will keep the two samples from being normalized to
 #' # eachother
 #'
-#' normalize_multihit_clusters(gr, grouping = 'patient')
+#' normalize_multihit_clusters(gr, grouping = 'patient', cores = 2)
 #'
 #' @author Christopher Nobles, Ph.D.
 #' @export
 
-normalize_multihit_clusters <- function(multihits.gr, gap = 5L, grouping = NULL){
-  #Multihits must be standardized and have clusterID info
+normalize_multihit_clusters <- function(multihits.gr, gap = 5L,
+                                        grouping = NULL, cores = NULL){
+  require(parallel)
+
+    #Multihits must be standardized and have clusterID info
   if(is.null(grouping)){
     multihits.gp <- GRangesList(multihits.gr)
   }else if(grouping %in% names(mcols(multihits.gr))){
@@ -67,9 +75,17 @@ normalize_multihit_clusters <- function(multihits.gr, gap = 5L, grouping = NULL)
          refering to the correct column in GRanges object.")
   }
 
-  base_clus <- 0 # Start count for multihitid's
+  if(is.null(cores)) cores <- length(multihits.gp)
+  cluster <- makeCluster(cores)
+  parallel::clusterExport(
+    cl = cluster,
+    varlist = c("multihits.gp", "gap"),
+    envir = environment())
 
-  norm.multi.list <- lapply(multihits.gp, function(gr){
+  norm.multi.list <- parLapply(cluster, 1:length(multihits.gp), function(i){
+    require(GenomicRanges)
+    require(igraph)
+    gr <- multihits.gp[[i]]
     key <- unique(data.frame(
       "multihitid" = as.character(gr$multihitid),
       "clusid" = gr$pos.clus,
@@ -86,12 +102,11 @@ normalize_multihit_clusters <- function(multihits.gr, gap = 5L, grouping = NULL)
       ncol = 2
     )
     graph <- graph.edgelist(edgelist, directed = FALSE)
-    norm.multi.id <- as.numeric(clusters(graph)$membership) + base_clus
+    norm.multi.id <- paste(i, clusters(graph)$membership, sep = ":")
     names(norm.multi.id) <- names(clusters(graph)$membership)
     key$norm.multihitid <- norm.multi.id[key$multihitid]
     key$clusid <- NULL
     key <- unique(key)
-    base_clus <<- max(norm.multi.id)
 
     norm.key <- data.frame(
       row.names = key$multihitid,
@@ -101,6 +116,8 @@ normalize_multihit_clusters <- function(multihits.gr, gap = 5L, grouping = NULL)
     gr$norm.multihitid <- norm.key[as.character(gr$multihitid), "norm.multihitid"]
     gr
   })
+
+  stopCluster(cl = cluster)
 
   norm.multi.gr <- do.call(c, lapply(1:length(norm.multi.list), function(i)
     norm.multi.list[[i]]))

@@ -6,7 +6,7 @@
 \usage{
 normalize_multihit_clusters(multihits.gr)
 
-normalize_multihit_clusters(multihits.gr, gap = 5L, grouping = NULL)
+normalize_multihit_clusters(multihits.gr, gap = 5L, grouping = NULL, cores = NULL)
 }
 \arguments{
 \item{multihits.gr}{GRanges object with a column named 'multihitid'.}
@@ -15,6 +15,9 @@ normalize_multihit_clusters(multihits.gr, gap = 5L, grouping = NULL)
 
 \item{grouping}{Character, name of the column used to assign groups that will
 not be compared to one another. Such as 'patient'.}
+
+\item{cores}{integer, the number of cores to use during processing. Data will
+be split by grouping and each group will be processed on a single core.}
 }
 \description{
 As the INSPIIRED pipeline calls multihits, or integration sites
@@ -25,7 +28,9 @@ replicate are different, even through they may refer to the same integration
 site. For this reason, normalize_multihit_clusters uses the previously
 assigned multihitID and genomic positions to reassign multihitIDs across
 multiple samples. Input for the function needs to be a GRanges object with a
-metadata column labeled as "multihitid".
+metadata column labeled as "multihitid". Due to the large amount of
+computation, this function requires the 'parallel' package and the number of
+cores to run.
 }
 \details{
 \code{normalize_multihit_clusters} will normalize multihit clusterIDs across
@@ -54,7 +59,7 @@ normalize_multihit_clusters(gr)
 # Group by patient will keep the two samples from being normalized to
 # eachother
 
-normalize_multihit_clusters(gr, grouping = 'patient')
+normalize_multihit_clusters(gr, grouping = 'patient', cores = 2)
 
 }
 \author{
