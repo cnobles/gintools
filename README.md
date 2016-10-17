@@ -11,3 +11,9 @@ graph_clusters() : Generates a partial undirected graph connecting integration s
 serial_cluster() : Returns a GRanges object of the same length and order as input with additional metadata columns specifying the group or clusterID of given nt windows.
 
 track_clones() : Returns a GRangesList of integration sites shared between multiple GRanges objects.
+
+condense_intsites() : Returns a GRanges object containing a single integration site in each row, removing all breakpoint information.
+
+determine_abundance() : Returns a data.frame with position ids and abundances, calculated by the number of unique fragment lengths or utilizing the sonicLength package.
+
+normalize_multihit_clusters() : Annotates multihit GRanges objects with new multihit.ID's which can be used to identify the same multihit in another sample.

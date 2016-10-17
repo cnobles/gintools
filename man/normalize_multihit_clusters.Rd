@@ -52,7 +52,7 @@ gr1$multihitid <- c(1, 1, 2, 3)
 gr2$multihitid <- c(4, 4, 5, 6)
 gr1$patient <- rep(1, 4)
 gr2$patient <- rep(2, 4)
-gr <- normalize_intsite_positions(c(gr1, gr2))
+gr <- c(gr1, gr2)
 
 normalize_multihit_clusters(gr)
 

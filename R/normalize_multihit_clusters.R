@@ -46,7 +46,7 @@
 #' gr2$multihitid <- c(4, 4, 5, 6)
 #' gr1$patient <- rep(1, 4)
 #' gr2$patient <- rep(2, 4)
-#' gr <- normalize_intsite_positions(c(gr1, gr2))
+#' gr <- c(gr1, gr2)
 #'
 #' normalize_multihit_clusters(gr)
 #'
@@ -62,7 +62,11 @@ normalize_multihit_clusters <- function(multihits.gr, gap = 5L,
                                         grouping = NULL, cores = NULL){
   require(parallel)
 
-    #Multihits must be standardized and have clusterID info
+  # Multihits must be standardized and have position clusterID info
+  if(!any(names(mcols(multihits.gr)) == "pos.clus")){
+    multihits.gr$pos.clus <- as.integer(factor(generate_posid(multihits.gr)))
+  }
+
   if(is.null(grouping)){
     multihits.gp <- GRangesList(multihits.gr)
   }else if(grouping %in% names(mcols(multihits.gr))){
