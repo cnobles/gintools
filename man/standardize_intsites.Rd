@@ -6,11 +6,15 @@
 \usage{
 standardize_intsites(sites)
 
-standardize_intsites(sites, std.gap = 1L, standardize_breakpoints = FALSE,
-get.analysis.data = FALSE, calc.cluster.stats = FALSE)
+standardize_intsites(sites, std.gap = 1L, max.gap = 5L)
 }
 \arguments{
-\item{sites}{}
+\item{sites}{GRanges Object integration sites to standardize.}
+
+\item{std.gap}{integer minimum gap to consider combine integration sites.}
+
+\item{max.gap}{integer maximum distance to consider combining integration
+sites.}
 }
 \description{
 Given a GRanges object ...
