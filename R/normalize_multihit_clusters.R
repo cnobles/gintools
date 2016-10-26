@@ -79,8 +79,8 @@ normalize_multihit_clusters <- function(multihits.gr, gap = 5L,
          refering to the correct column in GRanges object.")
   }
 
-  if(is.null(cores)) cores <- length(multihits.gp)
-  cluster <- makeCluster(cores)
+  if(is.null(cores)) cores <- parallel::detectCores()
+  cluster <- parallel::makeCluster(cores)
   parallel::clusterExport(
     cl = cluster,
     varlist = c("multihits.gp", "gap"),
