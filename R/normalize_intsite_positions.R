@@ -34,7 +34,7 @@
 #' normalize_intsite_positions(gr, gap = 1L)
 #'
 #' @author Christopher Nobles, Ph.D.
-#'
+#' @export
 
 normalize_intsite_positions <- function(sites, gap = 0L){
   sites$called.pos <- ifelse(strand(sites) == "+", start(sites), end(sites))
