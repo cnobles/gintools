@@ -15,15 +15,16 @@
 #' @param x numeric a vector of abundances or proportions / frequencies.
 #'
 #' @param calc character one of the various population calcuations. Choices are:
-#' "shannon", "gini", "entropy", or "clonality".
+#' "shannon", "gini", "entropy", "clonality", or "uc50".
 #'
 #' @examples
 #' x <- sample(1:100, 50, replace = TRUE)
 #'
-#' calc_shannon(x)
-#' calc_gini(x)
-#' calc_entropy(x)
-#' calc_clonality(x)
+#' pop_calcs(x, calc = "shannon")
+#' pop_calcs(x, calc = "gini")
+#' pop_calcs(x, calc = "entropy")
+#' pop_calcs(x, calc = "clonality")
+#' pop_calcs(x, calc = "uc50")
 #'
 #' @author Christopher Nobles, Ph.D.
 #' @export
@@ -37,6 +38,8 @@ pop_calcs <- function(x, calc){
     calc_entropy(x)
   }else if(calc == "clonality"){
     calc_clonality(x)
+  }else if(calc == "uc50"){
+    calc_uc50(x)
   }
 }
 
@@ -71,4 +74,13 @@ calc_clonality <- function(x){
   x <- x/sum(x)
   clonality <- 1+sum(x*log(x, base = length(x)))
   clonality
+}
+
+#' @describeIn pop_calcs Calculate UC50 or the number of must abundant clones
+#' which make up half the population.
+calc_uc50 <- function(x){
+  stopifnot(is.vector(x) & is.numeric(x))
+  x <- x[order(x)]
+  accum <- sapply(1:length(x), function(i){sum(x[1:i])})
+  length(accum[accum >= sum(x)/2])
 }

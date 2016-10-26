@@ -5,6 +5,7 @@
 \alias{calc_entropy}
 \alias{calc_gini}
 \alias{calc_shannon}
+\alias{calc_uc50}
 \alias{pop_calcs}
 \title{Calculation for descriptors of populations}
 \usage{
@@ -17,12 +18,14 @@ calc_gini(x)
 calc_entropy(x)
 
 calc_clonality(x)
+
+calc_uc50(x)
 }
 \arguments{
 \item{x}{numeric a vector of abundances or proportions / frequencies.}
 
 \item{calc}{character one of the various population calcuations. Choices are:
-"shannon", "gini", "entropy", or "clonality".}
+"shannon", "gini", "entropy", "clonality", or "uc50".}
 }
 \description{
 Given a population of integration sites, TCR/IGH sequences,
@@ -44,14 +47,18 @@ sequence data.
 \item \code{calc_entropy}: Calculate Entropy as defined by Adaptive Biotech.
 
 \item \code{calc_clonality}: Calcuate Clonality as defined by Adaptive Biotech.
+
+\item \code{calc_uc50}: Calculate UC50 or the number of must abundant clones
+which make up half the population.
 }}
 \examples{
 x <- sample(1:100, 50, replace = TRUE)
 
-calc_shannon(x)
-calc_gini(x)
-calc_entropy(x)
-calc_clonality(x)
+pop_calcs(x, calc = "shannon")
+pop_calcs(x, calc = "gini")
+pop_calcs(x, calc = "entropy")
+pop_calcs(x, calc = "clonality")
+pop_calcs(x, calc = "uc50")
 
 }
 \author{
