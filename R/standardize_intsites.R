@@ -86,7 +86,8 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   # that have been annotated. It does this by iterively increasing the size
   # from 2nt to 5nt by 1nt increments.
   lapply(2:sata.gap, function(i){
-    clus.ranges <- unlist(range(GRangesList(split(red.sites, clusters(g)$membership))))
+#    clus.ranges <- unlist(range(GRangesList(split(red.sites, clusters(g)$membership))))
+    clus.ranges <- unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = (i-1)))
     sata.hits <- as.data.frame(
       findOverlaps(clus.ranges, maxgap = i, ignoreSelf = TRUE)
     )
@@ -216,7 +217,8 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     "chr" = seqnames(red.sites[sources]),
     "strand" = strand(red.sites[sources]),
     "position" = start(red.sites[sources]),
-    "width" = width(unlist(range(GRangesList(split(red.sites, clusters(g)$membership)))))
+#    "width" = width(unlist(range(GRangesList(split(red.sites, clusters(g)$membership)))))
+    "width" = width(unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = sata.gap)))
   )
 
   sites <- sites[unlist(as.list(red.sites$revmap))]
