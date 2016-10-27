@@ -8,11 +8,11 @@
 #' @usage
 #' standardize_intsites(sites)
 #'
-#' standardize_intsites(sites, std.gap = 1L, max.gap = 5L)
+#' standardize_intsites(sites, min.gap = 1L, sata.gap = 5L)
 #'
 #' @param sites GRanges Object integration sites to standardize.
-#' @param std.gap integer minimum gap to consider combine integration sites.
-#' @param max.gap integer maximum distance to consider combining integration
+#' @param min.gap integer minimum gap to consider combine integration sites.
+#' @param sata.gap integer maximum distance to consider combining integration
 #' sites.
 #'
 #' @examples
@@ -23,12 +23,8 @@
 #' @author Christopher Nobles, Ph.D.
 #' @export
 
-standardize_intsites <- function(sites, std.gap = 1L, max.gap = 5L){
-  require(dplyr)
-  require(IRanges)
-  require(GenomicRanges)
-  require(igraph)
-  require(Matrix)
+standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
+  require(gintools)
 
   # Start by reducing the sites object down to only the "intSite" positions
   # and storing the revmap for going back to the original sites.
@@ -41,7 +37,7 @@ standardize_intsites <- function(sites, std.gap = 1L, max.gap = 5L){
   red.sites$fragLengths <- sapply(revmap, length) + runif(length(revmap), max = 0.01)
   # Not true if original sites are not dereplicated or unique
   red.hits <- as.data.frame(
-    findOverlaps(red.sites, maxgap = std.gap, ignoreSelf = TRUE))
+    findOverlaps(red.sites, maxgap = min.gap, ignoreSelf = TRUE))
 
   red.hits$q_fragLengths <- red.sites[red.hits$queryHits]$fragLengths
   red.hits$s_fragLengths <- red.sites[red.hits$subjectHits]$fragLengths
@@ -89,11 +85,8 @@ standardize_intsites <- function(sites, std.gap = 1L, max.gap = 5L){
   # boundry of a cluster to see if there are any further "satalite" positions
   # that have been annotated. It does this by iterively increasing the size
   # from 2nt to 5nt by 1nt increments.
-  lapply(2:max.gap, function(i){
-    clus.ranges <- unlist(GenomicRanges::reduce(
-      GRangesList(split(red.sites, clusters(g)$membership)),
-      min.gapwidth = (i-1))
-    )
+  lapply(2:sata.gap, function(i){
+    clus.ranges <- unlist(range(GRangesList(split(red.sites, clusters(g)$membership))))
     sata.hits <- as.data.frame(
       findOverlaps(clus.ranges, maxgap = i, ignoreSelf = TRUE)
     )
@@ -223,9 +216,7 @@ standardize_intsites <- function(sites, std.gap = 1L, max.gap = 5L){
     "chr" = seqnames(red.sites[sources]),
     "strand" = strand(red.sites[sources]),
     "position" = start(red.sites[sources]),
-    "width" = width(unlist(GenomicRanges::reduce(
-      GRangesList(split(red.sites, clusters(g)$membership)),
-      min.gapwidth = max.gap)))
+    "width" = width(unlist(range(GRangesList(split(red.sites, clusters(g)$membership)))))
   )
 
   sites <- sites[unlist(as.list(red.sites$revmap))]

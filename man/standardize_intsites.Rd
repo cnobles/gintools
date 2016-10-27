@@ -6,14 +6,14 @@
 \usage{
 standardize_intsites(sites)
 
-standardize_intsites(sites, std.gap = 1L, max.gap = 5L)
+standardize_intsites(sites, min.gap = 1L, sata.gap = 5L)
 }
 \arguments{
 \item{sites}{GRanges Object integration sites to standardize.}
 
-\item{std.gap}{integer minimum gap to consider combine integration sites.}
+\item{min.gap}{integer minimum gap to consider combine integration sites.}
 
-\item{max.gap}{integer maximum distance to consider combining integration
+\item{sata.gap}{integer maximum distance to consider combining integration
 sites.}
 }
 \description{
