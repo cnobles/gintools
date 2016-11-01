@@ -36,7 +36,7 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   revmap <- as.list(red.sites$revmap)
   red.sites$fragLengths <- sapply(revmap, length) + runif(length(revmap), max = 0.01)
   # Not true if original sites are not dereplicated or unique
-  red.hits <- as.data.frame(
+  red.hits <- GenomicRanges::as.data.frame(
     findOverlaps(red.sites, maxgap = min.gap, ignoreSelf = TRUE))
 
   red.hits$q_fragLengths <- red.sites[red.hits$queryHits]$fragLengths
@@ -86,16 +86,18 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   # that have been annotated. It does this by iterively increasing the size
   # from 2nt to 5nt by 1nt increments.
   lapply(2:sata.gap, function(i){
-#    clus.ranges <- unlist(range(GRangesList(split(red.sites, clusters(g)$membership))))
+#    clus.ranges <- unlist(range(split(red.sites, clusters(g)$membership))) #Why can't 'range' work right?
     clus.ranges <- unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = (i-1)))
     sata.hits <- as.data.frame(
       findOverlaps(clus.ranges, maxgap = i, ignoreSelf = TRUE)
     )
     names(sata.hits) <- c("source_clus", "sata_clus")
 
+    red.df <- GenomicRanges::as.data.frame(red.sites)
+
     if(nrow(sata.hits) > 0){
       clus.data <-
-        group_by(as.data.frame(red.sites), clusID) %>%
+        group_by(red.df, clusID) %>%
         summarize(
           clus_pos_mean = as.integer(mean(start)),
           min_fragLengths = min(fragLengths),
@@ -217,7 +219,7 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     "chr" = seqnames(red.sites[sources]),
     "strand" = strand(red.sites[sources]),
     "position" = start(red.sites[sources]),
-#    "width" = width(unlist(range(GRangesList(split(red.sites, clusters(g)$membership)))))
+#    "width" = width(unlist(range(split(red.sites, clusters(g)$membership))))
     "width" = width(unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = sata.gap)))
   )
 

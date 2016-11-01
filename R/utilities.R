@@ -1,3 +1,55 @@
+#' Quickly format a GRanges object for geneRxCluster
+#'
+#' @usage .quick_clus_format(gr)
+#'
+#' @param gr GRanges object consistent with integration sites
+#'
+#' @details Quickly formats a GRanges object for use with the geneRxCluster
+#' functions, specifically the scan statistics of gRxCluster.
+#'
+#' @author Christopher Nobles, Ph.D.
+
+.quick_clus_format <- function(gr){
+  gr <- sort(gr)
+  df <- data.frame(
+    "chr" = seqnames(gr),
+    "pos" = ifelse(strand(gr) == "+", start(gr), end(gr))
+  )
+  df
+}
+
+#' Scan subject and query ranges for windows of enrichment using the gRxCluster
+#' function
+#'
+#' @usage gintools:::.scan_clusters(subject, query, kvals, nperm, ...)
+#'
+#' @param subject GRanges object (group = 0 / FALSE)
+#' @param query GRanges object (group = 1 / TRUE)
+#' @param kvals integer vector of window widths
+#' @param nperm number of permutations for FDR calculation
+#' @param ... other args to pass to gRxCluster
+
+.scan_clusters <- function(subject, query, kvals, nperm, ...){
+  require(GenomicRanges)
+  require(dplyr)
+  require(geneRxCluster)
+  subject <- gintools:::.quick_clus_format(subject)
+  query <- gintools:::.quick_clus_format(query)
+  subject$grp <- 0
+  query$grp <- 1
+  data <- rbind(subject, query)
+  data <- arrange(data, chr, pos)
+  results <- geneRxCluster::gRxCluster(
+    object = data$chr,
+    starts = data$pos,
+    group = data$grp,
+    kvals = kvals,
+    nperm = nperm,
+    ... = ...
+  )
+  results
+}
+
 #' Generate a test GRanges object
 #'
 #' @usage .generate_test_granges(n_sites = 5, n_reads_p_site = 20, site_range = 1:1000, read_width_range = 30:100)
@@ -16,7 +68,7 @@
 #' distribution of widths for the sites.
 #'
 #' @author Christopher Nobles, Ph.D.
-#'
+
 .generate_test_granges <- function(n_sites = 5, n_reads_p_site = 20,
                                    site_range = 1:1000,
                                    read_width_range = 30:100,
