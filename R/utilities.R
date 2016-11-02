@@ -15,7 +15,7 @@
     "chr" = seqnames(gr),
     "pos" = ifelse(strand(gr) == "+", start(gr), end(gr))
   )
-  df
+  distinct(df)
 }
 
 #' Scan subject and query ranges for windows of enrichment using the gRxCluster
