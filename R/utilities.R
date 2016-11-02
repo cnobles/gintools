@@ -3,19 +3,26 @@
 #' @usage .quick_clus_format(gr)
 #'
 #' @param gr GRanges object consistent with integration sites
-#'
+#' @param grouping character name of metadata column in GRanges object to be
+#' used for defining groups. Groups will be made unique independently, meaning
+#' if the same event is observed in two different groups, they are both kept,
+#' but if they occur in the same group, they will be made one.
 #' @details Quickly formats a GRanges object for use with the geneRxCluster
 #' functions, specifically the scan statistics of gRxCluster.
 #'
 #' @author Christopher Nobles, Ph.D.
 
-.quick_clus_format <- function(gr){
+.quick_clus_format <- function(gr, grouping){
+  if(is.null(grouping)) gr$grp <- grouping <- "grp"
+  group_col <- grep(grouping, names(mcols(gr)))
   gr <- sort(gr)
   df <- data.frame(
     "chr" = seqnames(gr),
-    "pos" = ifelse(strand(gr) == "+", start(gr), end(gr))
+    "pos" = ifelse(strand(gr) == "+", start(gr), end(gr)),
+    "grp" = mcols(gr)[, group_col]
   )
-  distinct(df)
+  df <- distinct(df)
+  df[, c(1,2)]
 }
 
 #' Scan subject and query ranges for windows of enrichment using the gRxCluster
@@ -25,16 +32,19 @@
 #'
 #' @param subject GRanges object (group = 0 / FALSE)
 #' @param query GRanges object (group = 1 / TRUE)
+#' @param grouping character Name of metadata column to use for grouping, if
+#' NULL, sites will all be treated as the same group.
 #' @param kvals integer vector of window widths
 #' @param nperm number of permutations for FDR calculation
 #' @param ... other args to pass to gRxCluster
 
-.scan_clusters <- function(subject, query, kvals, nperm, ...){
+.scan_clusters <- function(subject, query, grouping = NULL, kvals, nperm, ...){
   require(GenomicRanges)
   require(dplyr)
   require(geneRxCluster)
-  subject <- gintools:::.quick_clus_format(subject)
-  query <- gintools:::.quick_clus_format(query)
+
+  subject <- gintools:::.quick_clus_format(subject, grouping)
+  query <- gintools:::.quick_clus_format(query, grouping)
   subject$grp <- 0
   query$grp <- 1
   data <- rbind(subject, query)
