@@ -54,32 +54,6 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
   red.sites$clusID <- clusters(g)$membership
 
-  # Modify graph if some clusters have multiple sources (n_bp conflicts).
-  # Multiple sources within a cluster at this point (clusters are defined by
-  # postions directly adjacent to each other) are merged into a single source
-  # based on the abundance of widths shareing the same position. The chosen
-  # source will have the highest abundance of widths / sonic breaks / fragment
-  # lengths.
-
-  #if(any(table(clusters(g)$membership[sources]) > 1)){
-  #  multi.src.clus <- red.sites[
-  #    clusters(g)$membership %in% which(table(clusters(g)$membership[sources]) > 1)]
-  #  source.list <- split(sources, clusters(g)$membership[sources])
-
-  #  mapply(function(sites, sources){
-  #    sites.df <- arrange(as.data.frame(red.sites[sources]), by = fragLengths)
-  #    edges <- c(sapply(1:(nrow(sites.df)-1), function(i){
-  #      c(sites.df[nrow(sites.df), "siteID"], sites.df[i,"siteID"])
-  #    }))
-  #    g <<- add_edges(g, edges)},
-  #    sites = split(multi.src.clus, multi.src.clus$clusID),
-  #    sources = source.list[sapply(source.list, length) > 1]
-  #  )
-
-  #  sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
-  #  red.sites$clusID <- clusters(g)$membership
-  #}
-
   # Identify satalite positions that should be included in clusters up to 5nt
   # away. This portion of the function tries to reach out to up to 5nt from the
   # boundry of a cluster to see if there are any further "satalite" positions
@@ -88,6 +62,7 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   lapply(2:sata.gap, function(i){
 #    clus.ranges <- unlist(range(split(red.sites, clusters(g)$membership))) #Why can't 'range' work right?
     clus.ranges <- unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = (i-1)))
+#    clus.ranges <- unlist(reduce(split(red.sites, clusters(g)$membership), min.gapwidth = (i-1)))
     sata.hits <- as.data.frame(
       findOverlaps(clus.ranges, maxgap = i, ignoreSelf = TRUE)
     )
@@ -210,6 +185,37 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
     red.sites$clusID <- clusters(g)$membership
   }
+
+  # In the end, sources that are within the range of satalites (5L default),
+  # should be grouped together. These sources should be connected by an edge,
+  # pointing toward the larger source. The chosen source will have the highest
+  # abundance of widths / sonic breaks / fragment lengths.
+
+  near.sources <- findOverlaps(
+    red.sites[sources],
+    maxgap = sata.gap,
+    ignoreSelf = TRUE
+  )
+
+  if(length(near.sources) > 0){
+    near.src.df <- data.frame(
+      node.i = sources[queryHits(near.sources)],
+      node.j = sources[subjectHits(near.sources)]
+    ) %>%
+      mutate(abund.i = red.sites[node.i]$fragLengths) %>%
+      mutate(abund.j = red.sites[node.j]$fragLengths) %>%
+      filter(abund.i > abund.j)
+
+    edges.to.connect.near.srcs <- unlist(with(
+      near.src.df,
+      mapply(c, node.i, node.j, SIMPLIFY = FALSE)
+    ))
+
+    g <- add.edges(g, edges.to.connect.near.srcs)
+    sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
+    red.sites$clusID <- clusters(g)$membership
+  }
+
   # As cluster membership has been determined, the remaining section of the
   # function serves to consolidate the information and correct the original
   # sites object with the standardized positions.
