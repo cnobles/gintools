@@ -16,15 +16,15 @@
 #' gr2 <- .generate_test_granges(n_sites = 50)
 #' .scan_clusters(gr1, gr2, kvals = 5L:10L, nperm = 20)
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 .scan_clusters <- function(subject, query, grouping = NULL, kvals, nperm, ...){
   require(GenomicRanges)
   require(dplyr)
   require(geneRxCluster)
 
-  subject <- gintools:::.quick_clus_format(subject, grouping)
-  query <- gintools:::.quick_clus_format(query, grouping)
+  subject <- .quick_clus_format(subject, grouping)
+  query <- .quick_clus_format(query, grouping)
   subject$grp <- 0
   query$grp <- 1
   data <- rbind(subject, query)

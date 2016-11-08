@@ -13,7 +13,7 @@
 #' gr <- .generate_test_granges()
 #' .quick_clus_format(gr, grouping = NULL)
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 .quick_clus_format <- function(gr, grouping = NULL){
   if(is.null(grouping)) gr$grp <- grouping <- "grp"
