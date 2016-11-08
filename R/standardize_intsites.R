@@ -16,7 +16,7 @@
 #' sites.
 #'
 #' @examples
-#' gr <- gintools:::.generate_test_granges()
+#' gr <- .generate_test_granges()
 #'
 #' standardize_intsites(gr)
 #'
@@ -28,6 +28,10 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
 
   # Start by reducing the sites object down to only the "intSite" positions
   # and storing the revmap for going back to the original sites.
+
+  message(paste0("Standardizing ", length(sites), " positions."))
+  message("Generating initial graph by connecting positions with 1 nt difference.")
+
   red.sites <- reduce(
     flank(sites, -1, start = TRUE),
     min.gapwidth = 0L,
@@ -39,9 +43,10 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   red.hits <- GenomicRanges::as.data.frame(
     findOverlaps(red.sites, maxgap = min.gap, ignoreSelf = TRUE))
 
-  red.hits$q_fragLengths <- red.sites[red.hits$queryHits]$fragLengths
-  red.hits$s_fragLengths <- red.sites[red.hits$subjectHits]$fragLengths
-  red.hits <- red.hits[red.hits$q_fragLengths >= red.hits$s_fragLengths,]
+  red.hits <- red.hits %>%
+    mutate(q_fragLengths = red.sites[queryHits]$fragLengths) %>%
+    mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) %>%
+    filter(q_fragLengths > s_fragLengths)
 
   # Construct initial graph, the graph will be modified during other parts of
   # the function and can be used to identify clusters as well as 'sources'
@@ -54,11 +59,16 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
   red.sites$clusID <- clusters(g)$membership
 
+  message(paste0("Initial cluster count: ", clusters(g)$no))
+
   # Identify satalite positions that should be included in clusters up to 5nt
   # away. This portion of the function tries to reach out to up to 5nt from the
   # boundry of a cluster to see if there are any further "satalite" positions
   # that have been annotated. It does this by iterively increasing the size
   # from 2nt to 5nt by 1nt increments.
+
+  message(paste0("Connecting satalite positions up to ", sata.gap, " nt away."))
+
   lapply(2:sata.gap, function(i){
 #    clus.ranges <- unlist(range(split(red.sites, clusters(g)$membership))) #Why can't 'range' work right?
     clus.ranges <- unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = (i-1)))
@@ -71,8 +81,8 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     red.df <- GenomicRanges::as.data.frame(red.sites)
 
     if(nrow(sata.hits) > 0){
-      clus.data <-
-        group_by(red.df, clusID) %>%
+      clus.data <- red.df %>%
+        group_by(clusID) %>%
         summarize(
           clus_pos_mean = as.integer(mean(start)),
           min_fragLengths = min(fragLengths),
@@ -87,7 +97,7 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
         mutate(s_sumFragLengths = clus.data[.$sata_clus,]$sum_fragLengths) %>%
         mutate(is_upstream = source_pos < sata_pos) %>%
         filter(q_sumFragLengths > s_sumFragLengths) %>%
-        filter(as.integer(.$min_q_fragLengths) >= as.integer(.$min_s_fragLengths))
+        filter(as.integer(min_q_fragLengths) >= as.integer(min_s_fragLengths))
 
       if(nrow(sata.hits) > 0){
         clus.map <- findOverlaps(clus.ranges, red.sites)
@@ -120,6 +130,8 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     red.sites$clusID <<- clusters(g)$membership
   })
 
+  message("Clusters after satalite connecting: ", clusters(g)$no)
+
   # During these steps of expanding the graph, it's possible that clusters grew
   # larger than they needed to be. This could be identified by seeing multiple
   # sources within a single cluster. This may arrize by reaching out and
@@ -130,6 +142,9 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   sources.p.clus <- split(sources, clusters(g)$membership[sources])
 
   clus.w.multi.sources <- sources.p.clus[sapply(sources.p.clus, length) > 1]
+
+  message(paste0("Clusters with multiple source nodes: ", length(clus.w.multi.sources)))
+  message("Clipping clusters with multiple source nodes.")
 
   if(length(clus.w.multi.sources) > 0){
     adj.pairs <- do.call(c, lapply(clus.w.multi.sources, function(x){
@@ -186,10 +201,14 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     red.sites$clusID <- clusters(g)$membership
   }
 
+  message(paste0("Clusters after clipping: ", clusters(g)$no))
+
   # In the end, sources that are within the range of satalites (5L default),
   # should be grouped together. These sources should be connected by an edge,
   # pointing toward the larger source. The chosen source will have the highest
   # abundance of widths / sonic breaks / fragment lengths.
+
+  message("Connecting clusters with source nodes within ", sata.gap, " nt.")
 
   near.sources <- findOverlaps(
     red.sites[sources],
@@ -197,7 +216,7 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     ignoreSelf = TRUE
   )
 
-  if(length(near.sources) > 0){
+  if(length(near.sources) > 0){     #Abundances used here should have the runif() added in case of ties
     near.src.df <- data.frame(
       node.i = sources[queryHits(near.sources)],
       node.j = sources[subjectHits(near.sources)]
@@ -216,6 +235,47 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     red.sites$clusID <- clusters(g)$membership
   }
 
+  message(paste0("Final cluster count: ", clusters(g)$no))
+
+  # If wide clusters are generated, these can confound the cluster source. For
+  # this reason, the "true" source for the cluster will be resolved by
+  # picking the source with the greatest number of fragment lengths, where ties
+  # are decided by randon picking.
+
+  sources.p.clus <- split(sources, clusters(g)$membership[sources])
+  clus.w.multi.sources <- sources.p.clus[sapply(sources.p.clus, length) > 1]
+
+  message(paste0("Clusters with confounding sources: ", length(clus.w.multi.sources)))
+  message("Resolving final cluster source positions.")
+
+  if(length(clus.w.multi.sources) > 0){
+    resolve.df <- data.frame(
+      node = unlist(clus.w.multi.sources),
+      clus = Rle(
+        values = 1:length(clus.w.multi.sources),
+        lengths = sapply(clus.w.multi.sources, length))
+    ) %>%
+      mutate(abund = red.sites[node]$fragLengths + runif(nrow(.), max = 0.01)) %>%
+      group_by(clus) %>%
+      mutate(src = abund == max(abund)) %>%
+      ungroup() %>% as.data.frame()
+
+    src_nodes <- resolve.df[resolve.df$src == TRUE,]$node
+    snk_nodes <- lapply(1:length(clus.w.multi.sources), function(i){
+      resolve.df[resolve.df$clus == i & resolve.df$src == FALSE,]$node
+    })
+
+    # Accomidates multiple sinks for singular sources in a cluster.
+    resolve.edges <- do.call(c, lapply(1:length(src_nodes), function(i){
+      src <- src_nodes[i]
+      snk <- snk_nodes[[i]]
+      unlist(mapply(c, rep(src, length(snk)), snk, SIMPLIFY = FALSE))
+    }))
+
+    g <- add.edges(g, resolve.edges)
+    sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
+    red.sites$clusID <- clusters(g)$membership
+  }
   # As cluster membership has been determined, the remaining section of the
   # function serves to consolidate the information and correct the original
   # sites object with the standardized positions.
@@ -235,6 +295,9 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     sapply(red.sites$revmap, length)))
   sites$called.pos <- ifelse(strand(sites) == "+", start(sites), end(sites))
   sites$adj.pos <- clus.data[match(sites$clusID, clus.data$clusID), "position"]
+
+  message(paste0("Cumulative displacement per range: ",
+                 sum(abs(sites$called.pos - sites$adj.pos))/length(sites)))
 
   ranges(sites) <- IRanges(
     start = ifelse(strand(sites) == "+", sites$adj.pos, start(sites)),

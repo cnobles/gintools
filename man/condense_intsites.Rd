@@ -42,8 +42,8 @@ separated and analyzed independently by using the grouping option.
 integration positions in the reference genome.
 }
 \examples{
-gr <- gintools:::.generate_test_granges()
-std.gr <- gintools:::.standardizeSites(gr)
+gr <- .generate_test_granges()
+std.gr <- standardize_intsites(gr)
 condense_intsites(std.gr)
 
 condense_intsites(std.gr, return.abundance = TRUE)
