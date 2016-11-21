@@ -139,8 +139,8 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     "chr" = seqnames(red.sites[src.nodes]),
     "strand" = strand(red.sites[src.nodes]),
     "position" = start(red.sites[src.nodes]),
-    "width" = width(unlist(range(split(red.sites, clusters(g)$membership))))
-#    "width" = width(unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = sata.gap)))
+    "width" = width(unlist(range(
+      GenomicRanges::split(red.sites, red.sites$clusID))))
   )
 
   sites <- sites[unlist(as.list(red.sites$revmap))]

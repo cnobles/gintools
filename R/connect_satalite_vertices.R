@@ -64,9 +64,10 @@
 #' @export
 
 connect_satalite_vertices <- function(red.sites, graph, gap){
-  #clus.ranges <- unlist(range(split(red.sites, clusters(graph)$membership))) #Why can't 'range' work right?
-  #clus.ranges <- unlist(reduce(GRangesList(split(red.sites, clusters(graph)$membership)), min.gapwidth = (gap-1)))
-  clus.ranges <- unlist(reduce(split(red.sites, clusters(graph)$membership), min.gapwidth = (gap-1)))
+  clus_mem <- clusters(graph)$membership
+  clus.ranges <- unlist(reduce(
+    GenomicRanges::split(red.sites, clus_mem),
+    min.gapwidth = (gap-1)))
   sata.hits <- as.data.frame(
     findOverlaps(clus.ranges, maxgap = gap, ignoreSelf = TRUE)
   )
