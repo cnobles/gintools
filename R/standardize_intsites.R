@@ -38,15 +38,28 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     with.revmap = TRUE)
   red.sites$siteID <- seq(1:length(red.sites))
   revmap <- as.list(red.sites$revmap)
-  red.sites$fragLengths <- sapply(revmap, length) + runif(length(revmap), max = 0.01)
+  red.sites$fragLengths <- sapply(revmap, length)
   # Not true if original sites are not dereplicated or unique
   red.hits <- GenomicRanges::as.data.frame(
     findOverlaps(red.sites, maxgap = min.gap, ignoreSelf = TRUE))
 
   red.hits <- red.hits %>%
+    mutate(q_pos = start(red.sites[queryHits])) %>%
+    mutate(s_pos = start(red.sites[subjectHits])) %>%
     mutate(q_fragLengths = red.sites[queryHits]$fragLengths) %>%
     mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) %>%
-    filter(q_fragLengths > s_fragLengths)
+    mutate(strand = unique(strand(
+      c(red.sites[queryHits], red.sites[subjectHits])))) %>%
+    mutate(is.upstream = ifelse(
+      strand == "+",
+      q_pos < s_pos,
+      q_pos > s_pos)) %>%
+    mutate(keep = q_fragLengths > s_fragLengths) %>%
+    mutate(keep = ifelse(
+      q_fragLengths == s_fragLengths,
+      is.upstream,
+      keep)) %>%
+    filter(keep)
 
   # Construct initial graph, the graph will be modified during other parts of
   # the function and can be used to identify clusters as well as 'sources'
@@ -56,10 +69,17 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     add_edges(unlist(mapply(
       c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
 
-  sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
   red.sites$clusID <- clusters(g)$membership
 
   message(paste0("Initial cluster count: ", clusters(g)$no))
+
+  # When clusters are formed of positions with equivalent abundance, both
+  # directional edges are created. This type of cluster does not have sources
+  # or sinks. The following set resolves which directed edges to remove, but
+  # imposes an upstream bias.
+
+#  g <- resolve_source_deficiency(red.sites, g, bias = "upstream")
+#  red.sites$clusID <- clusters(g)$membership
 
   # Identify satalite positions that should be included in clusters up to 5nt
   # away. This portion of the function tries to reach out to up to 5nt from the
@@ -67,66 +87,10 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   # that have been annotated. It does this by iterively increasing the size
   # from 2nt to 5nt by 1nt increments.
 
-  message(paste0("Connecting satalite positions up to ", sata.gap, " nt away."))
+  message(paste0("Connecting satalite positions up to ", sata.gap, " nt apart."))
 
-  lapply(2:sata.gap, function(i){
-#    clus.ranges <- unlist(range(split(red.sites, clusters(g)$membership))) #Why can't 'range' work right?
-    clus.ranges <- unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = (i-1)))
-#    clus.ranges <- unlist(reduce(split(red.sites, clusters(g)$membership), min.gapwidth = (i-1)))
-    sata.hits <- as.data.frame(
-      findOverlaps(clus.ranges, maxgap = i, ignoreSelf = TRUE)
-    )
-    names(sata.hits) <- c("source_clus", "sata_clus")
-
-    red.df <- GenomicRanges::as.data.frame(red.sites)
-
-    if(nrow(sata.hits) > 0){
-      clus.data <- red.df %>%
-        group_by(clusID) %>%
-        summarize(
-          clus_pos_mean = as.integer(mean(start)),
-          min_fragLengths = min(fragLengths),
-          sum_fragLengths = sum(fragLengths))
-
-      sata.hits <- sata.hits %>%
-        mutate(source_pos = clus.data[source_clus,]$clus_pos_mean) %>%
-        mutate(sata_pos = clus.data[sata_clus,]$clus_pos_mean) %>%
-        mutate(min_q_fragLengths = clus.data[.$source_clus,]$min_fragLengths) %>%
-        mutate(min_s_fragLengths = clus.data[.$sata_clus,]$min_fragLengths) %>%
-        mutate(q_sumFragLengths = clus.data[.$source_clus,]$sum_fragLengths) %>%
-        mutate(s_sumFragLengths = clus.data[.$sata_clus,]$sum_fragLengths) %>%
-        mutate(is_upstream = source_pos < sata_pos) %>%
-        filter(q_sumFragLengths > s_sumFragLengths) %>%
-        filter(as.integer(min_q_fragLengths) >= as.integer(min_s_fragLengths))
-
-      if(nrow(sata.hits) > 0){
-        clus.map <- findOverlaps(clus.ranges, red.sites)
-        clus.list <- split(subjectHits(clus.map), queryHits(clus.map))
-
-        sata.hits <- sata.hits %>%
-          mutate(source_node = ifelse(
-            sata.hits$is_upstream,
-            sapply(clus.list[sata.hits$source_clus], last),
-            sapply(clus.list[sata.hits$source_clus], first)
-          )) %>%
-          mutate(sata_node = ifelse(
-            is_upstream,
-            sapply(clus.list[sata_clus], first),
-            sapply(clus.list[sata_clus], last)
-          ))
-
-        sata.edges <- unlist(with(
-          sata.hits,
-          mapply(c, source_node, sata_node, SIMPLIFY = FALSE)
-        ))
-      }else{
-        sata.edges <- c()
-      }
-    }else{
-      sata.edges <- c()
-    }
-    g <<- add_edges(g, sata.edges)
-    sources <<- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
+  lapply(2:sata.gap, function(gap){
+    g <<- connect_satalite_vertices(red.sites, g, gap)
     red.sites$clusID <<- clusters(g)$membership
   })
 
@@ -139,67 +103,8 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   # the path between the sources will be 'snipped' between the nodes that share
   # the largest distance appart from one another.
 
-  sources.p.clus <- split(sources, clusters(g)$membership[sources])
-
-  clus.w.multi.sources <- sources.p.clus[sapply(sources.p.clus, length) > 1]
-
-  message(paste0("Clusters with multiple source nodes: ", length(clus.w.multi.sources)))
-  message("Clipping clusters with multiple source nodes.")
-
-  if(length(clus.w.multi.sources) > 0){
-    adj.pairs <- do.call(c, lapply(clus.w.multi.sources, function(x){
-      lapply(1:(length(x)-1), function(i) c(x[i], x[i+1]))
-    }))
-
-    sink.nodes <- which(Matrix::rowSums(get.adjacency(g, sparse = TRUE)) == 0)
-
-    edges.to.edit <- data.frame(
-      "src_node_i" = sapply(adj.pairs, "[[", 1),
-      "src_node_j" = sapply(adj.pairs, "[[", 2)
-    ) %>%
-      mutate("src_node_i_abund" = as.numeric(red.sites[src_node_i]$fragLengths)) %>%
-      mutate("src_node_j_abund" = as.numeric(red.sites[src_node_j]$fragLengths))
-
-    source.paths <- mapply(function(x,y){
-      all_simple_paths(as.undirected(g), x, y)},
-      edges.to.edit$src_node_i,
-      edges.to.edit$src_node_j)
-
-    edges.to.edit <- mutate(edges.to.edit, sink_node = sink.nodes[
-      sapply(source.paths, function(x){
-        which(sink.nodes %in% x)
-      })])
-
-    nodes.adj.to.sink <- bind_rows(lapply(1:nrow(edges.to.edit), function(i){
-      sink <- edges.to.edit[i, "sink_node"]
-      path <- as.numeric(source.paths[[i]])
-      pos <- grep(sink, path)
-      data.frame(
-        "sink" = rep(sink, 2),
-        "adj_node" = c(path[pos-1], path[pos+1])
-      )
-    })) %>%
-      mutate(sink_pos = start(red.sites[sink])) %>%
-      mutate(adj_pos = start(red.sites[adj_node])) %>%
-      mutate(adj_abund = red.sites[adj_node]$fragLengths) %>%
-      mutate(nt_dist = abs(sink_pos - adj_pos)) %>%
-      group_by(sink) %>%
-      filter(nt_dist == max(nt_dist)) %>%
-      filter(adj_abund == min(adj_abund))
-
-    edges.to.edit <- mutate(edges.to.edit, adj_node = nodes.adj.to.sink$adj_node)
-
-    break.edges <- unlist(with(
-      edges.to.edit,
-      mapply(c, sink_node, adj_node, SIMPLIFY = FALSE)
-    ))
-
-    edge.ids.to.break <- get.edge.ids(g, break.edges, directed = FALSE)
-
-    g <- delete_edges(g, edge.ids.to.break)
-    sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
-    red.sites$clusID <- clusters(g)$membership
-  }
+  g <- break_connecting_source_paths(red.sites, g)
+  red.sites$clusID <- clusters(g)$membership
 
   message(paste0("Clusters after clipping: ", clusters(g)$no))
 
@@ -210,30 +115,8 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
 
   message("Connecting clusters with source nodes within ", sata.gap, " nt.")
 
-  near.sources <- findOverlaps(
-    red.sites[sources],
-    maxgap = sata.gap,
-    ignoreSelf = TRUE
-  )
-
-  if(length(near.sources) > 0){     #Abundances used here should have the runif() added in case of ties
-    near.src.df <- data.frame(
-      node.i = sources[queryHits(near.sources)],
-      node.j = sources[subjectHits(near.sources)]
-    ) %>%
-      mutate(abund.i = red.sites[node.i]$fragLengths) %>%
-      mutate(abund.j = red.sites[node.j]$fragLengths) %>%
-      filter(abund.i > abund.j)
-
-    edges.to.connect.near.srcs <- unlist(with(
-      near.src.df,
-      mapply(c, node.i, node.j, SIMPLIFY = FALSE)
-    ))
-
-    g <- add.edges(g, edges.to.connect.near.srcs)
-    sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
-    red.sites$clusID <- clusters(g)$membership
-  }
+  g <- connect_adjacent_clusters(red.sites, g, gap = sata.gap)
+  red.sites$clusID <- clusters(g)$membership
 
   message(paste0("Final cluster count: ", clusters(g)$no))
 
@@ -242,51 +125,22 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
   # picking the source with the greatest number of fragment lengths, where ties
   # are decided by randon picking.
 
-  sources.p.clus <- split(sources, clusters(g)$membership[sources])
-  clus.w.multi.sources <- sources.p.clus[sapply(sources.p.clus, length) > 1]
+  g <- resolve_cluster_sources(red.sites, g)
+  red.sites$clusID <- clusters(g)$membership
 
-  message(paste0("Clusters with confounding sources: ", length(clus.w.multi.sources)))
-  message("Resolving final cluster source positions.")
-
-  if(length(clus.w.multi.sources) > 0){
-    resolve.df <- data.frame(
-      node = unlist(clus.w.multi.sources),
-      clus = Rle(
-        values = 1:length(clus.w.multi.sources),
-        lengths = sapply(clus.w.multi.sources, length))
-    ) %>%
-      mutate(abund = red.sites[node]$fragLengths + runif(nrow(.), max = 0.01)) %>%
-      group_by(clus) %>%
-      mutate(src = abund == max(abund)) %>%
-      ungroup() %>% as.data.frame()
-
-    src_nodes <- resolve.df[resolve.df$src == TRUE,]$node
-    snk_nodes <- lapply(1:length(clus.w.multi.sources), function(i){
-      resolve.df[resolve.df$clus == i & resolve.df$src == FALSE,]$node
-    })
-
-    # Accomidates multiple sinks for singular sources in a cluster.
-    resolve.edges <- do.call(c, lapply(1:length(src_nodes), function(i){
-      src <- src_nodes[i]
-      snk <- snk_nodes[[i]]
-      unlist(mapply(c, rep(src, length(snk)), snk, SIMPLIFY = FALSE))
-    }))
-
-    g <- add.edges(g, resolve.edges)
-    sources <- which(Matrix::colSums(get.adjacency(g, sparse = TRUE)) == 0)
-    red.sites$clusID <- clusters(g)$membership
-  }
   # As cluster membership has been determined, the remaining section of the
   # function serves to consolidate the information and correct the original
   # sites object with the standardized positions.
 
+  src.nodes <- sources(g)
+
   clus.data <- data.frame(
     "clusID" = 1:clusters(g)$no,
-    "chr" = seqnames(red.sites[sources]),
-    "strand" = strand(red.sites[sources]),
-    "position" = start(red.sites[sources]),
-#    "width" = width(unlist(range(split(red.sites, clusters(g)$membership))))
-    "width" = width(unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = sata.gap)))
+    "chr" = seqnames(red.sites[src.nodes]),
+    "strand" = strand(red.sites[src.nodes]),
+    "position" = start(red.sites[src.nodes]),
+    "width" = width(unlist(range(split(red.sites, clusters(g)$membership))))
+#    "width" = width(unlist(reduce(GRangesList(split(red.sites, clusters(g)$membership)), min.gapwidth = sata.gap)))
   )
 
   sites <- sites[unlist(as.list(red.sites$revmap))]

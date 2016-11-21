@@ -1,0 +1,113 @@
+#' Resolve primary sources from clusters with multiple souce nodes.
+#'
+#' \code{resolve_cluster_sources} returns a graph where each cluster only
+#' has a single primary source node.
+#'
+#' @description Given a list of unique integration site positions (reduced
+#' GRanges object) and a directed graph of connected components, this function
+#' identifies clusters where multiple source nodes exist and then identifies
+#' which source should be considered the primary source node, first based on
+#' abundance and then
+#'
+#' @usage
+#' resolve_cluster_sources(red.sites, graph)
+#'
+#' @param red.sites GRanges object which has been reduced to single nt positions
+#' and contains the revmap from the original GRanges object. The object must
+#' also contain a column for cluster membership (clusID) and a column for
+#' abundance (fragLengths).
+#'
+#' @param graph a directed graph built from the red.sites object. Each node
+#' corresponds to a row in the red.sites object.
+#'
+#' @examples
+#' gr <- .generate_test_granges(stdev = 3)
+#' red.sites <- reduce(
+#'   flank(gr, -1, start = TRUE),
+#'   min.gapwidth = 0L,
+#'   with.revmap = TRUE)
+#' red.sites$siteID <- seq(1:length(red.sites))
+#' revmap <- as.list(red.sites$revmap)
+#' red.sites$fragLengths <- sapply(revmap, length)
+#' red.hits <- GenomicRanges::as.data.frame(
+#'   findOverlaps(red.sites, maxgap = 1L, ignoreSelf = TRUE))
+#' red.hits <- red.hits %>%
+#'   mutate(q_pos = start(red.sites[queryHits])) %>%
+#'   mutate(s_pos = start(red.sites[subjectHits])) %>%
+#'   mutate(q_fragLengths = red.sites[queryHits]$fragLengths) %>%
+#'   mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) %>%
+#'   mutate(strand = unique(strand(
+#'     c(red.sites[queryHits], red.sites[subjectHits])))) %>%
+#'   mutate(is.upstream = ifelse(
+#'     strand == "+",
+#'     q_pos < s_pos,
+#'     q_pos > s_pos)) %>%
+#'   mutate(keep = q_fragLengths > s_fragLengths) %>%
+#'   mutate(keep = ifelse(
+#'     q_fragLengths == s_fragLengths,
+#'     is.upstream,
+#'     keep)) %>%
+#'   filter(keep)
+#' g <- make_empty_graph(n = length(red.sites), directed = TRUE) %>%
+#'   add_edges(unlist(mapply(
+#'     c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
+#' red.sites$clusID <- clusters(g)$membership
+#' g <- connect_satalite_vertices(red.sites, g, gap = 2L)
+#' red.sites$clusID <- clusters(g)$membership
+#' g <- break_connecting_source_paths(red.sites, g)
+#' red.sites$clusID <- clusters(g)$membership
+#' g <- connect_adjacent_clusters(red.sites, g, gap = 5L)
+#' red.sites$clusID <- clusters(g)$membership
+#'
+#' resolve_cluster_sources(red.sites, g)
+#'
+#' @author Christopher Nobles, Ph.D.
+#' @export
+
+resolve_cluster_sources <- function(red.sites, graph){
+  src.nodes <- sources(graph)
+  sources.p.clus <- split(src.nodes, clusters(graph)$membership[src.nodes])
+  clus.w.multi.sources <- sources.p.clus[sapply(sources.p.clus, length) > 1]
+
+  if(length(clus.w.multi.sources) > 0){
+    resolve.df <- data.frame(
+      node = unlist(clus.w.multi.sources),
+      clus = Rle(
+        values = 1:length(clus.w.multi.sources),
+        lengths = sapply(clus.w.multi.sources, length))
+    ) %>%
+      mutate(abund = red.sites[node]$fragLengths) %>%
+      group_by(clus) %>%
+      mutate(top_abund = abund == max(abund)) %>%
+      mutate(strand = as.character(strand(red.sites[node]))) %>%
+      mutate(pos = start(red.sites[node])) %>%
+      mutate(is.upstream = ifelse(
+        strand == "+",
+        pos == min(pos),
+        pos == max(pos)
+      )) %>%
+      group_by(clus, top_abund) %>%
+      mutate(grp_size = n()) %>%
+      mutate(src = ifelse(
+        top_abund == TRUE & grp_size > 1,
+        is.upstream,
+        top_abund)) %>%
+      ungroup() %>% as.data.frame()
+
+    src.nodes <- resolve.df[resolve.df$src == TRUE,]$node
+    snk.nodes <- lapply(1:length(clus.w.multi.sources), function(i){
+      resolve.df[resolve.df$clus == i & resolve.df$src == FALSE,]$node
+    })
+
+    # Accomidates multiple sinks for singular sources in a cluster.
+    resolve.edges <- do.call(c, lapply(1:length(src.nodes), function(i){
+      src <- src.nodes[i]
+      snk <- snk.nodes[[i]]
+      unlist(mapply(c, rep(src, length(snk)), snk, SIMPLIFY = FALSE))
+    }))
+  }else{
+    resolve.edges <- c()
+  }
+
+  add.edges(graph, resolve.edges)
+}
