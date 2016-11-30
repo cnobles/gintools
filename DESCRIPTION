@@ -22,5 +22,6 @@ Suggests:
     geneRxCluster,
     Matrix,
     roxygen2,
-    sonicLength
+    sonicLength,
+    testthat
 RoxygenNote: 5.0.1
