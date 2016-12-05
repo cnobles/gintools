@@ -90,12 +90,12 @@ break_connecting_source_paths <- function(red.sites, graph){
         which(snk.nodes %in% x)
       })])
 
-    #' Identify the nodes adjacent to sinks between connected sources
-    #' then filter adjacent pairs to identify which edge should be 'clipped'.
-    #' Filtering based first on adjacent node distance (edges with greater
-    #' distance get clipped), then abundance (lower abund gets clipped), then
-    #' biasing on upstream edges over downstream (downstream is clipped for
-    #' tie breaking).
+    # Identify the nodes adjacent to sinks between connected sources
+    # then filter adjacent pairs to identify which edge should be 'clipped'.
+    # Filtering based first on adjacent node distance (edges with greater
+    # distance get clipped), then abundance (lower abund gets clipped), then
+    # biasing on upstream edges over downstream (downstream is clipped for
+    # tie breaking).
 
     target.edges <- bind_rows(lapply(1:nrow(edges.to.edit), function(i){
       sink <- edges.to.edit[i, "sink_node"]
@@ -106,20 +106,20 @@ break_connecting_source_paths <- function(red.sites, graph){
         "adj_node" = c(path[pos-1], path[pos+1])
       )
     })) %>%
-      mutate(sink_pos = start(red.sites[sink])) %>%
-      mutate(adj_pos = start(red.sites[adj_node])) %>%
-      mutate(adj_abund = red.sites[adj_node]$fragLengths) %>%
-      mutate(nt_dist = abs(sink_pos - adj_pos)) %>%
-      mutate(strand = as.character(strand(red.sites[sink]))) %>%
-      mutate(is.upstream = ifelse(
+      dplyr::mutate(sink_pos = start(red.sites[sink])) %>%
+      dplyr::mutate(adj_pos = start(red.sites[adj_node])) %>%
+      dplyr::mutate(adj_abund = red.sites[adj_node]$fragLengths) %>%
+      dplyr::mutate(nt_dist = abs(sink_pos - adj_pos)) %>%
+      dplyr::mutate(strand = as.character(strand(red.sites[sink]))) %>%
+      dplyr::mutate(is.upstream = ifelse(
         strand == "+",
         sink_pos < adj_pos,
         sink_pos > adj_pos)) %>%
       group_by(sink) %>%
       filter(nt_dist == max(nt_dist)) %>%
       filter(adj_abund == min(adj_abund)) %>%
-      mutate(group_size = n()) %>%
-      mutate(keep = ifelse(
+      dplyr::mutate(group_size = n()) %>%
+      dplyr::mutate(keep = ifelse(
           group_size == 1,
           TRUE,
           !is.upstream)) %>%

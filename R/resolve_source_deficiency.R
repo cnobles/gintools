@@ -60,10 +60,10 @@ resolve_source_deficiency <- function(red.sites, graph, bias = "upstream"){
     df <- edges %>%
       filter(from %in% gr$siteID) %>%
       filter(to %in% gr$siteID) %>%
-      mutate(from.pos = red.sites$pos[from]) %>%
-      mutate(to.pos = red.sites$pos[to]) %>%
-      mutate(strand = unique(strand(c(red.sites[from], red.sites[to])))) %>%
-      mutate(is.upstream = ifelse(
+      dplyr::mutate(from.pos = red.sites$pos[from]) %>%
+      dplyr::mutate(to.pos = red.sites$pos[to]) %>%
+      dplyr::mutate(strand = unique(strand(c(red.sites[from], red.sites[to])))) %>%
+      dplyr::mutate(is.upstream = ifelse(
         strand == "+",
         from.pos < to.pos,
         from.pos > to.pos))

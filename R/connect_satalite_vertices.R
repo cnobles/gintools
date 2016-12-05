@@ -84,13 +84,13 @@ connect_satalite_vertices <- function(red.sites, graph, gap){
         sum_fragLengths = sum(fragLengths))
 
     sata.hits <- sata.hits %>%
-      mutate(source_pos = clus.data[source_clus,]$clus_pos_mean) %>%
-      mutate(sata_pos = clus.data[sata_clus,]$clus_pos_mean) %>%
-      mutate(min_src_fragLengths = clus.data[.$source_clus,]$min_fragLengths) %>%
-      mutate(min_sat_fragLengths = clus.data[.$sata_clus,]$min_fragLengths) %>%
-      mutate(src_sumFragLengths = clus.data[.$source_clus,]$sum_fragLengths) %>%
-      mutate(sat_sumFragLengths = clus.data[.$sata_clus,]$sum_fragLengths) %>%
-      mutate(is_upstream = source_pos < sata_pos) %>%
+      dplyr::mutate(source_pos = clus.data[source_clus,]$clus_pos_mean) %>%
+      dplyr::mutate(sata_pos = clus.data[sata_clus,]$clus_pos_mean) %>%
+      dplyr::mutate(min_src_fragLengths = clus.data[.$source_clus,]$min_fragLengths) %>%
+      dplyr::mutate(min_sat_fragLengths = clus.data[.$sata_clus,]$min_fragLengths) %>%
+      dplyr::mutate(src_sumFragLengths = clus.data[.$source_clus,]$sum_fragLengths) %>%
+      dplyr::mutate(sat_sumFragLengths = clus.data[.$sata_clus,]$sum_fragLengths) %>%
+      dplyr::mutate(is_upstream = source_pos < sata_pos) %>%
       filter(src_sumFragLengths > sat_sumFragLengths) %>%
       filter(as.integer(min_src_fragLengths) >= as.integer(min_sat_fragLengths))
 
@@ -99,12 +99,12 @@ connect_satalite_vertices <- function(red.sites, graph, gap){
       clus.list <- split(subjectHits(clus.map), queryHits(clus.map))
 
       sata.hits <- sata.hits %>%
-        mutate(source_node = ifelse(
+        dplyr::mutate(source_node = ifelse(
           sata.hits$is_upstream,
           sapply(clus.list[sata.hits$source_clus], last),
           sapply(clus.list[sata.hits$source_clus], first)
         )) %>%
-        mutate(sata_node = ifelse(
+        dplyr::mutate(sata_node = ifelse(
           is_upstream,
           sapply(clus.list[sata_clus], first),
           sapply(clus.list[sata_clus], last)

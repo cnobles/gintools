@@ -76,19 +76,19 @@ resolve_cluster_sources <- function(red.sites, graph){
         values = 1:length(clus.w.multi.sources),
         lengths = sapply(clus.w.multi.sources, length))
     ) %>%
-      mutate(abund = red.sites[node]$fragLengths) %>%
+      dplyr::mutate(abund = red.sites[node]$fragLengths) %>%
       group_by(clus) %>%
-      mutate(top_abund = abund == max(abund)) %>%
-      mutate(strand = as.character(strand(red.sites[node]))) %>%
-      mutate(pos = start(red.sites[node])) %>%
-      mutate(is.upstream = ifelse(
+      dplyr::mutate(top_abund = abund == max(abund)) %>%
+      dplyr::mutate(strand = as.character(strand(red.sites[node]))) %>%
+      dplyr::mutate(pos = start(red.sites[node])) %>%
+      group_by(clus, top_abund) %>%
+      dplyr::mutate(grp_size = n()) %>%
+      dplyr::mutate(is.upstream = ifelse(
         strand == "+",
         pos == min(pos),
         pos == max(pos)
       )) %>%
-      group_by(clus, top_abund) %>%
-      mutate(grp_size = n()) %>%
-      mutate(src = ifelse(
+      dplyr::mutate(src = ifelse(
         top_abund == TRUE & grp_size > 1,
         is.upstream,
         top_abund)) %>%

@@ -71,22 +71,22 @@ connect_adjacent_clusters <- function(red.sites, graph, gap){
   )
 
   if(length(near.sources) > 0){
-    #' Identify sources of clusters within the largets satalite gap distance
-    #' and identify the directionality of the edge to create based first on
-    #' abundance (source will likely have greater abundance) and then by
-    #' upstream bias (more likely the origin site is upstream of drifting mapped
-    #' reads).
+    # Identify sources of clusters within the largets satalite gap distance
+    # and identify the directionality of the edge to create based first on
+    # abundance (source will likely have greater abundance) and then by
+    # upstream bias (more likely the origin site is upstream of drifting mapped
+    # reads).
     near.src.df <- data.frame(
       node.i = src.nodes[queryHits(near.sources)],
       node.j = src.nodes[subjectHits(near.sources)]
     ) %>%
-      mutate(abund.i = red.sites[node.i]$fragLengths) %>%
-      mutate(abund.j = red.sites[node.j]$fragLengths) %>%
-      mutate(pos.i = start(red.sites[node.i])) %>%
-      mutate(pos.j = start(red.sites[node.j])) %>%
-      mutate(strand = unique(as.character(
+      dplyr::mutate(abund.i = red.sites[node.i]$fragLengths) %>%
+      dplyr::mutate(abund.j = red.sites[node.j]$fragLengths) %>%
+      dplyr::mutate(pos.i = start(red.sites[node.i])) %>%
+      dplyr::mutate(pos.j = start(red.sites[node.j])) %>%
+      dplyr::mutate(strand = unique(as.character(
         strand(red.sites[c(node.i, node.j)])))) %>%
-      mutate(is.upstream = ifelse(
+      dplyr::mutate(is.upstream = ifelse(
         strand == "+",
         pos.i < pos.j,
         pos.i > pos.j))
@@ -104,8 +104,8 @@ connect_adjacent_clusters <- function(red.sites, graph, gap){
     near.src.df <- mutate(near.src.df, redundant_grp = redundant_groups) %>%
       filter(abund.i >= abund.j) %>%
       group_by(redundant_grp) %>%
-      mutate(group_size = n()) %>%
-      mutate(keep = ifelse(
+      dplyr::mutate(group_size = n()) %>%
+      dplyr::mutate(keep = ifelse(
         group_size == 1,
         TRUE,
         is.upstream)) %>%

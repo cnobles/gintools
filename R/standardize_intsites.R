@@ -44,18 +44,18 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     findOverlaps(red.sites, maxgap = min.gap, ignoreSelf = TRUE))
 
   red.hits <- red.hits %>%
-    mutate(q_pos = start(red.sites[queryHits])) %>%
-    mutate(s_pos = start(red.sites[subjectHits])) %>%
-    mutate(q_fragLengths = red.sites[queryHits]$fragLengths) %>%
-    mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) %>%
-    mutate(strand = unique(strand(
+    dplyr::mutate(q_pos = start(red.sites[queryHits])) %>%
+    dplyr::mutate(s_pos = start(red.sites[subjectHits])) %>%
+    dplyr::mutate(q_fragLengths = red.sites[queryHits]$fragLengths) %>%
+    dplyr::mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) %>%
+    dplyr::mutate(strand = unique(strand(
       c(red.sites[queryHits], red.sites[subjectHits])))) %>%
-    mutate(is.upstream = ifelse(
+    dplyr::mutate(is.upstream = ifelse(
       strand == "+",
       q_pos < s_pos,
       q_pos > s_pos)) %>%
-    mutate(keep = q_fragLengths > s_fragLengths) %>%
-    mutate(keep = ifelse(
+    dplyr::mutate(keep = q_fragLengths > s_fragLengths) %>%
+    dplyr::mutate(keep = ifelse(
       q_fragLengths == s_fragLengths,
       is.upstream,
       keep)) %>%
