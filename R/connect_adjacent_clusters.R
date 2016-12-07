@@ -84,8 +84,7 @@ connect_adjacent_clusters <- function(red.sites, graph, gap){
       dplyr::mutate(abund.j = red.sites[node.j]$fragLengths) %>%
       dplyr::mutate(pos.i = start(red.sites[node.i])) %>%
       dplyr::mutate(pos.j = start(red.sites[node.j])) %>%
-      dplyr::mutate(strand = unique(as.character(
-        strand(red.sites[c(node.i, node.j)])))) %>%
+      dplyr::mutate(strand = as.character(strand(red.sites[node.i]))) %>%
       dplyr::mutate(is.upstream = ifelse(
         strand == "+",
         pos.i < pos.j,
