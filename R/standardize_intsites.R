@@ -48,8 +48,7 @@ standardize_intsites <- function(sites, min.gap = 1L, sata.gap = 5L){
     dplyr::mutate(s_pos = start(red.sites[subjectHits])) %>%
     dplyr::mutate(q_fragLengths = red.sites[queryHits]$fragLengths) %>%
     dplyr::mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) %>%
-    dplyr::mutate(strand = unique(strand(
-      c(red.sites[queryHits], red.sites[subjectHits])))) %>%
+    dplyr::mutate(strand = as.vector(strand(red.sites[queryHits]))) %>%
     dplyr::mutate(is.upstream = ifelse(
       strand == "+",
       q_pos < s_pos,
