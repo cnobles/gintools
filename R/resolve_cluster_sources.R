@@ -20,6 +20,9 @@
 #' @param graph a directed graph built from the red.sites object. Each node
 #' corresponds to a row in the red.sites object.
 #'
+#' @param bias either "upsteam" or "downstream", designating which position to
+#' choose if other decision metrics are tied.
+#'
 #' @examples
 #' gr <- .generate_test_granges(stdev = 3)
 #' red.sites <- reduce(
@@ -28,23 +31,23 @@
 #'   with.revmap = TRUE)
 #' red.sites$siteID <- seq(1:length(red.sites))
 #' revmap <- as.list(red.sites$revmap)
-#' red.sites$fragLengths <- sapply(revmap, length)
+#' red.sites$abundance <- sapply(revmap, length)
 #' red.hits <- GenomicRanges::as.data.frame(
 #'   findOverlaps(red.sites, maxgap = 1L, ignoreSelf = TRUE))
 #' red.hits <- red.hits %>%
 #'   mutate(q_pos = start(red.sites[queryHits])) %>%
 #'   mutate(s_pos = start(red.sites[subjectHits])) %>%
-#'   mutate(q_fragLengths = red.sites[queryHits]$fragLengths) %>%
-#'   mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) %>%
+#'   mutate(q_abund = red.sites[queryHits]$abundance) %>%
+#'   mutate(s_abund = red.sites[subjectHits]$abundance) %>%
 #'   mutate(strand = unique(strand(
 #'     c(red.sites[queryHits], red.sites[subjectHits])))) %>%
 #'   mutate(is.upstream = ifelse(
 #'     strand == "+",
 #'     q_pos < s_pos,
 #'     q_pos > s_pos)) %>%
-#'   mutate(keep = q_fragLengths > s_fragLengths) %>%
+#'   mutate(keep = q_abund > s_abund) %>%
 #'   mutate(keep = ifelse(
-#'     q_fragLengths == s_fragLengths,
+#'     q_abund == s_abund,
 #'     is.upstream,
 #'     keep)) %>%
 #'   filter(keep)
@@ -52,47 +55,75 @@
 #'   add_edges(unlist(mapply(
 #'     c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
 #' red.sites$clusID <- clusters(g)$membership
-#' g <- connect_satalite_vertices(red.sites, g, gap = 2L)
+#' g <- connect_satalite_vertices(red.sites, g, gap = 2L, "upstream")
 #' red.sites$clusID <- clusters(g)$membership
-#' g <- break_connecting_source_paths(red.sites, g)
+#' g <- break_connecting_source_paths(red.sites, g, "upstream")
 #' red.sites$clusID <- clusters(g)$membership
-#' g <- connect_adjacent_clusters(red.sites, g, gap = 5L)
+#' g <- connect_adjacent_clusters(red.sites, g, gap = 5L, "upstream")
 #' red.sites$clusID <- clusters(g)$membership
 #'
-#' resolve_cluster_sources(red.sites, g)
+#' resolve_cluster_sources(red.sites, g, "upstream")
 #'
 #' @author Christopher Nobles, Ph.D.
 #' @export
 
-resolve_cluster_sources <- function(red.sites, graph){
+resolve_cluster_sources <- function(red.sites, graph, bias){
   src.nodes <- sources(graph)
   sources.p.clus <- split(src.nodes, clusters(graph)$membership[src.nodes])
   clus.w.multi.sources <- sources.p.clus[sapply(sources.p.clus, length) > 1]
 
   if(length(clus.w.multi.sources) > 0){
-    resolve.df <- data.frame(
-      node = unlist(clus.w.multi.sources),
-      clus = Rle(
-        values = 1:length(clus.w.multi.sources),
-        lengths = sapply(clus.w.multi.sources, length))
-    ) %>%
-      dplyr::mutate(abund = red.sites[node]$fragLengths) %>%
-      group_by(clus) %>%
-      dplyr::mutate(top_abund = abund == max(abund)) %>%
-      dplyr::mutate(strand = as.character(strand(red.sites[node]))) %>%
-      dplyr::mutate(pos = start(red.sites[node])) %>%
-      group_by(clus, top_abund) %>%
-      dplyr::mutate(grp_size = n()) %>%
-      dplyr::mutate(is.upstream = ifelse(
-        strand == "+",
-        pos == min(pos),
-        pos == max(pos)
-      )) %>%
-      dplyr::mutate(src = ifelse(
-        top_abund == TRUE & grp_size > 1,
-        is.upstream,
-        top_abund)) %>%
-      ungroup() %>% as.data.frame()
+    if(bias == "upstream"){
+      resolve.df <- data.frame(
+        node = unlist(clus.w.multi.sources),
+        clus = Rle(
+          values = 1:length(clus.w.multi.sources),
+          lengths = sapply(clus.w.multi.sources, length))
+      ) %>%
+        dplyr::mutate(abund = red.sites[node]$abundance) %>%
+        group_by(clus) %>%
+        dplyr::mutate(top_abund = abund == max(abund)) %>%
+        dplyr::mutate(strand = as.character(strand(red.sites[node]))) %>%
+        dplyr::mutate(pos = start(red.sites[node])) %>%
+        group_by(clus, top_abund) %>%
+        dplyr::mutate(grp_size = n()) %>%
+        dplyr::mutate(is.upstream = ifelse(
+          strand == "+",
+          pos == min(pos),
+          pos == max(pos)
+        )) %>%
+        dplyr::mutate(src = ifelse(
+          top_abund == TRUE & grp_size > 1,
+          is.upstream,
+          top_abund)) %>%
+        ungroup() %>% as.data.frame()
+    }else if(bias == "downstream"){
+      resolve.df <- data.frame(
+        node = unlist(clus.w.multi.sources),
+        clus = Rle(
+          values = 1:length(clus.w.multi.sources),
+          lengths = sapply(clus.w.multi.sources, length))
+      ) %>%
+        dplyr::mutate(abund = red.sites[node]$abundance) %>%
+        group_by(clus) %>%
+        dplyr::mutate(top_abund = abund == max(abund)) %>%
+        dplyr::mutate(strand = as.character(strand(red.sites[node]))) %>%
+        dplyr::mutate(pos = start(red.sites[node])) %>%
+        group_by(clus, top_abund) %>%
+        dplyr::mutate(grp_size = n()) %>%
+        dplyr::mutate(is.downstream = ifelse(
+          strand == "+",
+          pos == max(pos),
+          pos == min(pos)
+        )) %>%
+        dplyr::mutate(src = ifelse(
+          top_abund == TRUE & grp_size > 1,
+          is.downstream,
+          top_abund)) %>%
+        ungroup() %>% as.data.frame()
+    }else{
+      stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
+    }
 
     src.nodes <- resolve.df[resolve.df$src == TRUE,]$node
     snk.nodes <- lapply(1:length(clus.w.multi.sources), function(i){

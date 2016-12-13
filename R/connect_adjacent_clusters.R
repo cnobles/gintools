@@ -10,7 +10,7 @@
 #' first on abundance, and secondly on an upstream bias for tie breaking.
 #'
 #' @usage
-#' connect_adjacent_clusters(red.sites, graph, gap)
+#' connect_adjacent_clusters(red.sites, graph, gap, bais)
 #'
 #' @param red.sites GRanges object which has been reduced to single nt positions
 #' and contains the revmap from the original GRanges object. The object must
@@ -19,6 +19,9 @@
 #'
 #' @param graph a directed graph built from the red.sites object. Each node
 #' corresponds to a row in the red.sites object.
+#'
+#' @param bias either "upsteam" or "downstream", designating which position to
+#' choose if other decision metrics are tied.
 #'
 #' @examples
 #' gr <- .generate_test_granges(stdev = 3)
@@ -34,17 +37,17 @@
 #' red.hits <- red.hits %>%
 #'   mutate(q_pos = start(red.sites[queryHits])) %>%
 #'   mutate(s_pos = start(red.sites[subjectHits])) %>%
-#'   mutate(q_fragLengths = red.sites[queryHits]$fragLengths) %>%
-#'   mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) %>%
+#'   mutate(q_abund = red.sites[queryHits]$abundance) %>%
+#'   mutate(s_abund = red.sites[subjectHits]$abundance) %>%
 #'   mutate(strand = unique(strand(
 #'     c(red.sites[queryHits], red.sites[subjectHits])))) %>%
 #'   mutate(is.upstream = ifelse(
 #'     strand == "+",
 #'     q_pos < s_pos,
 #'     q_pos > s_pos)) %>%
-#'   mutate(keep = q_fragLengths > s_fragLengths) %>%
+#'   mutate(keep = q_abund > s_abund) %>%
 #'   mutate(keep = ifelse(
-#'     q_fragLengths == s_fragLengths,
+#'     q_abund == s_abund,
 #'     is.upstream,
 #'     keep)) %>%
 #'   filter(keep)
@@ -52,17 +55,17 @@
 #'   add_edges(unlist(mapply(
 #'     c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
 #' red.sites$clusID <- clusters(g)$membership
-#' g <- connect_satalite_vertices(red.sites, g, gap = 2L)
+#' g <- connect_satalite_vertices(red.sites, g, gap = 2L, "upstream")
 #' red.sites$clusID <- clusters(g)$membership
-#' g <- break_connecting_source_paths(red.sites, g)
+#' g <- break_connecting_source_paths(red.sites, g, "upstream")
 #' red.sites$clusID <- clusters(g)$membership
 #'
-#' connect_adjacent_clusters(red.sites, g, gap = 5L)
+#' connect_adjacent_clusters(red.sites, g, gap = 5L, "upstream")
 #'
 #' @author Christopher Nobles, Ph.D.
 #' @export
 
-connect_adjacent_clusters <- function(red.sites, graph, gap){
+connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
   src.nodes <- sources(graph)
   near.sources <- findOverlaps(
     red.sites[src.nodes],
@@ -76,19 +79,37 @@ connect_adjacent_clusters <- function(red.sites, graph, gap){
     # abundance (source will likely have greater abundance) and then by
     # upstream bias (more likely the origin site is upstream of drifting mapped
     # reads).
-    near.src.df <- data.frame(
-      node.i = src.nodes[queryHits(near.sources)],
-      node.j = src.nodes[subjectHits(near.sources)]
-    ) %>%
-      dplyr::mutate(abund.i = red.sites[node.i]$fragLengths) %>%
-      dplyr::mutate(abund.j = red.sites[node.j]$fragLengths) %>%
-      dplyr::mutate(pos.i = start(red.sites[node.i])) %>%
-      dplyr::mutate(pos.j = start(red.sites[node.j])) %>%
-      dplyr::mutate(strand = as.character(strand(red.sites[node.i]))) %>%
-      dplyr::mutate(is.upstream = ifelse(
-        strand == "+",
-        pos.i < pos.j,
-        pos.i > pos.j))
+    if(bias == "upstream"){
+      near.src.df <- data.frame(
+        node.i = src.nodes[queryHits(near.sources)],
+        node.j = src.nodes[subjectHits(near.sources)]
+      ) %>%
+        dplyr::mutate(abund.i = red.sites[node.i]$abundance) %>%
+        dplyr::mutate(abund.j = red.sites[node.j]$abundance) %>%
+        dplyr::mutate(pos.i = start(red.sites[node.i])) %>%
+        dplyr::mutate(pos.j = start(red.sites[node.j])) %>%
+        dplyr::mutate(strand = as.character(strand(red.sites[node.i]))) %>%
+        dplyr::mutate(is.upstream = ifelse(
+          strand == "+",
+          pos.i < pos.j,
+          pos.i > pos.j))
+    }else if(bias == "downstream"){
+      near.src.df <- data.frame(
+        node.i = src.nodes[queryHits(near.sources)],
+        node.j = src.nodes[subjectHits(near.sources)]
+      ) %>%
+        dplyr::mutate(abund.i = red.sites[node.i]$abundance) %>%
+        dplyr::mutate(abund.j = red.sites[node.j]$abundance) %>%
+        dplyr::mutate(pos.i = start(red.sites[node.i])) %>%
+        dplyr::mutate(pos.j = start(red.sites[node.j])) %>%
+        dplyr::mutate(strand = as.character(strand(red.sites[node.i]))) %>%
+        dplyr::mutate(is.downstream = ifelse(
+          strand == "+",
+          pos.i > pos.j,
+          pos.i < pos.j))
+    }else{
+      stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
+    }
 
     redundant_graph <- make_graph(
       edges = unlist(with(
@@ -100,15 +121,27 @@ connect_adjacent_clusters <- function(red.sites, graph, gap){
     ))))
     redundant_groups <- clusters(redundant_graph)$membership
 
-    near.src.df <- mutate(near.src.df, redundant_grp = redundant_groups) %>%
-      filter(abund.i >= abund.j) %>%
-      group_by(redundant_grp) %>%
-      dplyr::mutate(group_size = n()) %>%
-      dplyr::mutate(keep = ifelse(
-        group_size == 1,
-        TRUE,
-        is.upstream)) %>%
-      filter(keep)
+    if(bias == "upstream"){
+      near.src.df <- mutate(near.src.df, redundant_grp = redundant_groups) %>%
+        filter(abund.i >= abund.j) %>%
+        group_by(redundant_grp) %>%
+        dplyr::mutate(group_size = n()) %>%
+        dplyr::mutate(keep = ifelse(
+          group_size == 1,
+          TRUE,
+          is.upstream)) %>%
+        filter(keep)
+    }else if(bias == "downstream"){
+      near.src.df <- mutate(near.src.df, redundant_grp = redundant_groups) %>%
+        filter(abund.i >= abund.j) %>%
+        group_by(redundant_grp) %>%
+        dplyr::mutate(group_size = n()) %>%
+        dplyr::mutate(keep = ifelse(
+          group_size == 1,
+          TRUE,
+          is.downstream)) %>%
+        filter(keep)
+    }
 
     edges.to.connect.near.srcs <- unlist(with(
       near.src.df,

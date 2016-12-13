@@ -4,7 +4,7 @@
 \alias{break_connecting_source_paths}
 \title{Break graph paths which connect sources.}
 \usage{
-break_connecting_source_paths(red.sites, graph)
+break_connecting_source_paths(red.sites, graph, bias)
 }
 \arguments{
 \item{red.sites}{GRanges object which has been reduced to single nt positions
@@ -14,6 +14,9 @@ abundance (fragLengths).}
 
 \item{graph}{a directed graph built from the red.sites object. Each node
 corresponds to a row in the red.sites object.}
+
+\item{bias}{either "upsteam" or "downstream", designating which position to
+choose if other decision metrics are tied.}
 }
 \description{
 Given a list of unique integration site positions (reduced
@@ -36,23 +39,23 @@ red.sites <- reduce(
   with.revmap = TRUE)
 red.sites$siteID <- seq(1:length(red.sites))
 revmap <- as.list(red.sites$revmap)
-red.sites$fragLengths <- sapply(revmap, length)
+red.sites$abundance <- sapply(revmap, length)
 red.hits <- GenomicRanges::as.data.frame(
   findOverlaps(red.sites, maxgap = 1L, ignoreSelf = TRUE))
 red.hits <- red.hits \%>\%
   mutate(q_pos = start(red.sites[queryHits])) \%>\%
   mutate(s_pos = start(red.sites[subjectHits])) \%>\%
-  mutate(q_fragLengths = red.sites[queryHits]$fragLengths) \%>\%
-  mutate(s_fragLengths = red.sites[subjectHits]$fragLengths) \%>\%
+  mutate(q_abund = red.sites[queryHits]$abundance) \%>\%
+  mutate(s_abund = red.sites[subjectHits]$abundance) \%>\%
   mutate(strand = unique(strand(
     c(red.sites[queryHits], red.sites[subjectHits])))) \%>\%
   mutate(is.upstream = ifelse(
     strand == "+",
     q_pos < s_pos,
     q_pos > s_pos)) \%>\%
-  mutate(keep = q_fragLengths > s_fragLengths) \%>\%
+  mutate(keep = q_abund > s_abund) \%>\%
   mutate(keep = ifelse(
-    q_fragLengths == s_fragLengths,
+    q_abund == s_abund,
     is.upstream,
     keep)) \%>\%
   filter(keep)
@@ -60,9 +63,9 @@ g <- make_empty_graph(n = length(red.sites), directed = TRUE) \%>\%
   add_edges(unlist(mapply(
     c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
 red.sites$clusID <- clusters(g)$membership
-g <- connect_satalite_vertices(red.sites, g, gap = 2L)
+g <- connect_satalite_vertices(red.sites, g, gap = 2L, bias = "upstream")
 red.sites$clusID <- clusters(g)$membership
-break_connecting_source_paths(red.sites, g)
+break_connecting_source_paths(red.sites, g, "upstream")
 
 }
 \author{

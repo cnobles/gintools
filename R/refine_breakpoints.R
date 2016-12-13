@@ -1,33 +1,35 @@
-#' Standardize genomic integration site positions within a dataset
+#' Refine or resolve sonic break points within a dataset
 #'
-#' \code{standardize_intsites} returns a GRanges object where the integration
-#' site positions have been standardized with sites within the gap distance.
+#' \code{refine_breakpoints} returns a GRanges object where the sonic break
+#' point positions have been adjusted based on the dataset and counts.
 #'
-#' @description Given a GRanges object ...
+#' @description Given a GRanges object ....
 #'
 #' @usage
-#' standardize_intsites(sites)
+#' refine_breakpoints(sites)
 #'
-#' standardize_intsites(sites, counts = "counts", min.gap = 1L, sata.gap = 5L)
+#' refine_breakpoints(sites, count = "counts", min.gap = 1L, sata.gap = 3L)
 #'
-#' @param sites GRanges Object integration sites to standardize.
+#' @param sites GRanges object. Integration site ranges to adjust.
 #' @param counts character string. Name of column holding range count
 #' information (ie. read counts). If not supplied, assume count of 1 for each
 #' row in sites.
-#' @param min.gap integer minimum gap to consider combine integration sites.
-#' @param sata.gap integer maximum distance to consider combining integration
-#' sites.
+#' @param min.gap integer minimum gap to consider combining break points.
+#' @param sata.gap integer maximum distance to consider combining break points.
 #'
 #' @examples
 #' gr <- .generate_test_granges()
 #'
-#' standardize_intsites(gr)
+#' refine_breakpoints(gr)
 #'
-#' @author Christopher Nobles, Ph.D.
+#' @author Christopher L. Nobles, Ph.D.
 #' @export
 
-standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 5L){
+refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L){
   require(gintools)
+
+  message(paste0("Refining ", length(sites), " break points."))
+  message("Generating initial graph by connecting positions with 1 nt difference.")
 
   # Retain original order
   sites$ori.order <- 1:length(sites)
@@ -48,22 +50,18 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
     sites$func.counts <- rep(1, length(sites))
   }
 
-  # Start by reducing the sites object down to only the "intSite" positions
-  # and storing the revmap for going back to the original sites.
-
-  message(paste0("Standardizing ", length(sites), " positions."))
-  message("Generating initial graph by connecting positions with 1 nt difference.")
+  # Reduce the genomic locations of break points down to only unique positions,
+  # and identify the abundance of the positions
 
   red.sites <- reduce(
-    flank(sites, -1, start = TRUE),
+    flank(sites, -1, start = FALSE),
     min.gapwidth = 0L,
     with.revmap = TRUE)
-  red.sites$siteID <- seq(1:length(red.sites))
+  red.sites$breakpointID <- seq(1:length(red.sites))
   revmap <- as.list(red.sites$revmap)
   red.sites$abundance <- sapply(revmap, function(x){
     sum(sites[x]$func.counts)
   })
-
   red.hits <- GenomicRanges::as.data.frame(
     findOverlaps(red.sites, maxgap = min.gap, ignoreSelf = TRUE))
 
@@ -73,14 +71,14 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
     dplyr::mutate(q_abund = red.sites[queryHits]$abundance) %>%
     dplyr::mutate(s_abund = red.sites[subjectHits]$abundance) %>%
     dplyr::mutate(strand = as.vector(strand(red.sites[queryHits]))) %>%
-    dplyr::mutate(is.upstream = ifelse(
+    dplyr::mutate(is.downstream = ifelse(
       strand == "+",
-      q_pos < s_pos,
-      q_pos > s_pos)) %>%
+      q_pos > s_pos,
+      q_pos < s_pos)) %>%
     dplyr::mutate(keep = q_abund > s_abund) %>%
     dplyr::mutate(keep = ifelse(
       q_abund == s_abund,
-      is.upstream,
+      is.downstream,
       keep)) %>%
     filter(keep)
 
@@ -88,6 +86,7 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   # the function and can be used to identify clusters as well as 'sources'
   # within those clusters as it's a directed graph. Sources are identified and
   # used to identify the original position given a distribution.
+
   g <- make_empty_graph(n = length(red.sites), directed = TRUE) %>%
     add_edges(unlist(mapply(
       c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
@@ -96,24 +95,16 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
 
   message(paste0("Initial cluster count: ", clusters(g)$no))
 
-  # When clusters are formed of positions with equivalent abundance, both
-  # directional edges are created. This type of cluster does not have sources
-  # or sinks. The following set resolves which directed edges to remove, but
-  # imposes an upstream bias.
-
-#  g <- resolve_source_deficiency(red.sites, g, bias = "upstream")
-#  red.sites$clusID <- clusters(g)$membership
-
-  # Identify satalite positions that should be included in clusters up to 5nt
-  # away. This portion of the function tries to reach out to up to 5nt from the
-  # boundry of a cluster to see if there are any further "satalite" positions
-  # that have been annotated. It does this by iterively increasing the size
-  # from 2nt to 5nt by 1nt increments.
+  # Identify satalite positions that should be included in clusters up to the
+  # sata.gap max. This portion of the function tries to reach out to up to the
+  # sata.gap distance from the boundry of a cluster to see if there are any
+  # further "satalite" positions that have been annotated. It does this by
+  # iterively increasing the size from 2nt to the sata.gap by 1nt increments.
 
   message(paste0("Connecting satalite positions up to ", sata.gap, " nt apart."))
 
   lapply(2:sata.gap, function(gap){
-    g <<- connect_satalite_vertices(red.sites, g, gap, "upstream")
+    g <<- connect_satalite_vertices(red.sites, g, gap, "downstream")
     red.sites$clusID <<- clusters(g)$membership
   })
 
@@ -126,34 +117,14 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   # the path between the sources will be 'snipped' between the nodes that share
   # the largest distance appart from one another.
 
-  g <- break_connecting_source_paths(red.sites, g, "upstream")
+  g <- break_connecting_source_paths(red.sites, g, "downstream")
   red.sites$clusID <- clusters(g)$membership
 
-  message(paste0("Clusters after clipping: ", clusters(g)$no))
-
-  # In the end, sources that are within the range of satalites (5L default),
-  # should be grouped together. These sources should be connected by an edge,
-  # pointing toward the larger source. The chosen source will have the highest
-  # abundance of widths / sonic breaks / fragment lengths.
-
-  message("Connecting clusters with source nodes within ", sata.gap, " nt.")
-
-  g <- connect_adjacent_clusters(red.sites, g, gap = sata.gap, "upstream")
-  red.sites$clusID <- clusters(g)$membership
-
-  message(paste0("Final cluster count: ", clusters(g)$no))
-
-  # If wide clusters are generated, these can confound the cluster source. For
-  # this reason, the "true" source for the cluster will be resolved by
-  # picking the source with the greatest number of fragment lengths, where ties
-  # are decided by randon picking.
-
-  g <- resolve_cluster_sources(red.sites, g, "upstream")
-  red.sites$clusID <- clusters(g)$membership
+  message(paste0("Final break point cluster count: ", clusters(g)$no))
 
   # As cluster membership has been determined, the remaining section of the
   # function serves to consolidate the information and correct the original
-  # sites object with the standardized positions.
+  # sites object with the adjusted breakpoints.
 
   src.nodes <- sources(g)
 
@@ -161,7 +132,7 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
     "clusID" = 1:clusters(g)$no,
     "chr" = seqnames(red.sites[src.nodes]),
     "strand" = strand(red.sites[src.nodes]),
-    "position" = start(red.sites[src.nodes]),
+    "breakpoint" = start(red.sites[src.nodes]),
     "width" = width(unlist(range(
       GenomicRanges::split(red.sites, red.sites$clusID))))
   )
@@ -170,18 +141,20 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   sites$clusID <- as.numeric(Rle(
     clusters(g)$membership,
     sapply(red.sites$revmap, length)))
-  sites$called.pos <- ifelse(strand(sites) == "+", start(sites), end(sites))
-  sites$adj.pos <- clus.data[match(sites$clusID, clus.data$clusID), "position"]
+  sites$called.bp <- ifelse(strand(sites) == "+", end(sites), start(sites))
+  sites$adj.bp <- clus.data[match(sites$clusID, clus.data$clusID), "breakpoint"]
 
   message(paste0("Cumulative displacement per range: ",
-                 sum(abs(sites$called.pos - sites$adj.pos))/length(sites)))
+                 round(
+                   sum(abs(sites$called.bp - sites$adj.bp))/length(sites),
+                   digits = 1)))
 
   ranges(sites) <- IRanges(
-    start = ifelse(strand(sites) == "+", sites$adj.pos, start(sites)),
-    end = ifelse(strand(sites) == "+", end(sites), sites$adj.pos)
+    start = ifelse(strand(sites) == "+", start(sites), sites$adj.bp),
+    end = ifelse(strand(sites) == "+", sites$adj.bp, end(sites))
   )
 
   sites <- sites[order(sites$ori.order)]
-  sites$ori.order <- sites$func.counts <- NULL
+  sites$ori.order <- sites$func.counts <- sites$clusID <- NULL
   sites
 }

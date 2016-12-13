@@ -6,10 +6,14 @@
 \usage{
 standardize_intsites(sites)
 
-standardize_intsites(sites, min.gap = 1L, sata.gap = 5L)
+standardize_intsites(sites, counts = "counts", min.gap = 1L, sata.gap = 5L)
 }
 \arguments{
 \item{sites}{GRanges Object integration sites to standardize.}
+
+\item{counts}{character string. Name of column holding range count
+information (ie. read counts). If not supplied, assume count of 1 for each
+row in sites.}
 
 \item{min.gap}{integer minimum gap to consider combine integration sites.}
 

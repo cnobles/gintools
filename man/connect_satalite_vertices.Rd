@@ -5,7 +5,7 @@
 \title{Connect integration sites which lie a specific gap distance away from a
 cluster of integration sites.}
 \usage{
-connect_satalite_vertices(red.sites, graph, gap)
+connect_satalite_vertices(red.sites, graph, gap, bais)
 }
 \arguments{
 \item{red.sites}{GRanges object which has been reduced to single nt positions
@@ -18,6 +18,9 @@ corresponds to a row in the red.sites object.}
 
 \item{gap}{integer nucleotide (nt) gap distance to consider joining to
 clusters.}
+
+\item{bias}{either "upsteam" or "downstream", designating which position to
+choose if other decision metrics are tied.}
 }
 \description{
 Given a list of unique integration site positions (reduced
@@ -64,7 +67,7 @@ g <- make_empty_graph(n = length(red.sites), directed = TRUE) \%>\%
     c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
 red.sites$clusID <- clusters(g)$membership
 
-connect_satalite_vertices(red.sites, g, gap = 2L)
+connect_satalite_vertices(red.sites, g, gap = 2L, "upstream")
 
 }
 \author{
