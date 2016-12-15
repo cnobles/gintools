@@ -67,19 +67,21 @@ track_clones <- function(sites.list, gap = 5L, track.origin = TRUE){
   )
 
   if(length(ovlp.grps) > 0){
-    ovlp.sites <- unlist(GRangesList(lapply(1:length(ovlp.grps), function(i){
-      query <- grl.sites[[queryHits(ovlp.grps[i])]]
-      subject <- grl.sites[[subjectHits(ovlp.grps[i])]]
-      hits <- findOverlaps(
-        flank(query, -1, start = TRUE),
-        flank(subject, -1, start = TRUE),
-        maxgap = gap)
-      if(length(hits) > 0){
-        sites <- c(query[queryHits(hits)], subject[subjectHits(hits)])
-      }else{
-        sites <- GRanges()
-      }
-      sites
+    ovlp.sites <- GenomicRanges::unlist(GRangesList(lapply(
+      1:length(ovlp.grps),
+      function(i){
+        query <- grl.sites[[queryHits(ovlp.grps[i])]]
+        subject <- grl.sites[[subjectHits(ovlp.grps[i])]]
+        hits <- findOverlaps(
+          flank(query, -1, start = TRUE),
+          flank(subject, -1, start = TRUE),
+          maxgap = gap)
+        if(length(hits) > 0){
+          sites <- c(query[queryHits(hits)], subject[subjectHits(hits)])
+        }else{
+          sites <- GRanges()
+        }
+        sites
     })))
   }else{
     message("No overlaping sites found between groups.")
