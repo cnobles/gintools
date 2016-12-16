@@ -60,7 +60,12 @@ unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL){
       stop("Could not find counts column name in sites object.")}}
 
   # Convert sites to a data.frame and remove duplicates
-  df <- GenomicRanges::as.data.frame(sites)
+  if(!length(names(sites)) == length(unique(names(sites)))){
+    message("Dropping rownames for data.frame conversion.")
+    df <- GenomicRanges::as.data.frame(sites, row.names = NULL)
+  }else{
+    df <- GenomicRanges::as.data.frame(sites)
+  }
   cols <- names(df)
 
   if(sum.counts){
