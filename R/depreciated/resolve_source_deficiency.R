@@ -42,7 +42,7 @@
 #' resolve_source_deficiency(red.sites, g)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+
 
 resolve_source_deficiency <- function(red.sites, graph, bias = "upstream"){
   clus <- clusters(graph)$membership
