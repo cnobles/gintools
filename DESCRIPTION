@@ -14,7 +14,7 @@ Depends:
     IRanges (>= 2.4.5),
     GenomicRanges (>= 1.22.1),
     igraph (>= 1.0.1),
-    Matrix (>= 1.2-3),
+    Matrix (>= 1.2-2),
     dplyr (>= 0.4.3)
 Suggests:
     devtools,
