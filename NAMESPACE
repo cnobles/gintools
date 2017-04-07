@@ -2,6 +2,7 @@
 
 export(.generate_test_granges)
 export(break_connecting_source_paths)
+export(cluster_multihits)
 export(condense_intsites)
 export(connect_adjacent_clusters)
 export(connect_satalite_vertices)

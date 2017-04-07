@@ -17,7 +17,9 @@
 #' cluster_multihits(multihits, read_col = NULL, max_gap = 5L, iterations = 5L)
 #'
 #' @param multihits a GRanges object containing sets of integration sites
-#' or ranges (one alignment per row) and containing the column from 'read_col'.
+#' or ranges (one alignment per row) and containing several columns, inlcluding
+#' "ID" (read identifier) and "key_pair" (unique identifier R2 and R1
+#' sequences).
 #'
 #' @param read_col character string matching the name of the column of the
 #' GRanges object given in 'multihits' which designates which ranges are
@@ -36,8 +38,81 @@
 #' @author Christopher Nobles, Ph.D.
 #' @export
 
-cluster_multihits <- function(multihits, read_col = NULL,
-                              max_gap = 5L, iterations = 5L){
+cluster_multihits <- function(multihits, max_gap = 5L, iterations = 5L){
+  stopifnot(class(multihits) == "GRanges")
+  isThere <- names(mcols(multihits))
+  if(!all(c("ID", "readPairKey") %in% isThere)){
+    stop("ID and readPairKey columns not found in multihits input.")}
 
+  read_key <- data.frame(
+    "readPairKey" = sample(
+      x = unique(mcols(multihits)$readPairKey),
+      size = length(unique(mcols(multihits)$readPairKey))))
+
+  if(iterations > 1){
+    read_key$proc_group <- ceiling(
+        seq_along(read_key$readPairKey)/(nrow(read_key)/iterations))
+  }else{
+    read_key$proc_group <- rep(1, nrow(read_key))
+  }
+
+  multihit_list <- split(
+    multihits,
+    read_key$proc_group[
+      match(multihits$readPairKey, read_key$readPairKey)])
+
+  axil_gr <- GRanges()
+  edgelist <- matrix(ncol = 2)
+
+  lapply(multihit_list, function(mhits){
+    fl_mhits <- c(axil_gr, flank(mhits, width = -1, start = TRUE))
+    red_mhits <- reduce(fl_mhits, min.gapwidth = max_gap, with.revmap = TRUE)
+    revmap <- as.list(red_mhits$revmap)
+
+    axil_nodes <- as.character(Rle(
+      values = fl_mhits$readPairKey[sapply(revmap, "[", 1)],
+      length = sapply(revmap, length)
+    ))
+    nodes <- fl_mhits$readPairKey[unlist(revmap)]
+    el <- unique(matrix( c(axil_nodes, nodes), ncol = 2 ))
+    clus <- clusters(graph.edgelist(el, directed = FALSE))
+    clus_key <- data.frame(
+      row.names = unique(as.character(t(el))),
+      "clusID" = clus$membership)
+
+    axils <- fl_mhits[fl_mhits$readPairKey %in% axil_nodes]
+    axil_gr <<- unique(flank(axils, width = -1, start = TRUE))
+    edgelist <<- rbind(edgelist, el)
+  })
+
+  edgelist <- na.exclude(edgelist)
+  cluster_data <- clusters(graph.edgelist(edgelist, directed = FALSE))
+  key <- data.frame(row.names = unique(as.character(t(edgelist))),
+                    "multihitID" = cluster_data$membership)
+  multihits$multihitID <- key[multihits$readPairKey, "multihitID"]
+
+  clusteredMultihitPositions <- split(
+    flank(multihits, width = -1, start = TRUE),
+    multihits$multihitID)
+  clusteredMultihitNames <- lapply(
+    clusteredMultihitPositions,
+    function(x) unique(x$readPairKey) )
+  clusteredMultihitPositions <- GRangesList(lapply(
+    clusteredMultihitPositions,
+    function(x) unname(unique(granges(x))) ))
+  multihits_medians <- round(median(width(split(multihits, multihits$ID))))
+  clusteredMultihitLengths <- lapply(
+    clusteredMultihitNames,
+    function(x){
+      readIDs <- unique(multihits[multihits$readPairKey %in% x]$ID)
+      df <- data.frame(table(multihits_medians[readIDs]))
+      names(df) <- c("length", "count")
+      df
+  })
+
+  list(
+    "unclusteredMultihits" = multihits,
+    "clusteredMultihitPositions" = clusteredMultihitPositions,
+    "clusteredMultihitLengths" = clusteredMultihitLengths)
 }
 
