@@ -88,7 +88,7 @@ break_connecting_source_paths <- function(red.sites, graph, bias){
       edges.to.edit$src_node_i,
       edges.to.edit$src_node_j)
 
-    edges.to.edit <- mutate(edges.to.edit, sink_node = snk.nodes[
+    edges.to.edit <- dplyr::mutate(edges.to.edit, sink_node = snk.nodes[
       sapply(source.paths, function(x){
         which(snk.nodes %in% x)
       })])
