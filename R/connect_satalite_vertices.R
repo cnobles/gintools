@@ -72,7 +72,7 @@ connect_satalite_vertices <- function(red.sites, graph, gap, bias){
     GenomicRanges::split(red.sites, clus_mem),
     min.gapwidth = (gap-1)))
   sata.hits <- as.data.frame(
-    findOverlaps(clus.ranges, maxgap = gap, ignoreSelf = TRUE)
+    findOverlaps(clus.ranges, maxgap = gap, drop.self = TRUE)
   )
   names(sata.hits) <- c("source_clus", "sata_clus")
 
