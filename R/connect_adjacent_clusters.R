@@ -122,7 +122,7 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
     redundant_groups <- clusters(redundant_graph)$membership
 
     if(bias == "upstream"){
-      near.src.df <- mutate(near.src.df, redundant_grp = redundant_groups) %>%
+      near.src.df <- dplyr::mutate(near.src.df, redundant_grp = redundant_groups) %>%
         filter(abund.i >= abund.j) %>%
         group_by(redundant_grp) %>%
         dplyr::mutate(group_size = n()) %>%
@@ -132,7 +132,7 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
           is.upstream)) %>%
         filter(keep)
     }else if(bias == "downstream"){
-      near.src.df <- mutate(near.src.df, redundant_grp = redundant_groups) %>%
+      near.src.df <- dplyr::mutate(near.src.df, redundant_grp = redundant_groups) %>%
         filter(abund.i >= abund.j) %>%
         group_by(redundant_grp) %>%
         dplyr::mutate(group_size = n()) %>%
