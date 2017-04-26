@@ -70,7 +70,7 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
   near.sources <- findOverlaps(
     red.sites[src.nodes],
     maxgap = gap,
-    ignoreSelf = TRUE
+    drop.self = TRUE
   )
 
   if(length(near.sources) > 0){
