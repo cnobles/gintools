@@ -80,8 +80,8 @@ break_connecting_source_paths <- function(red.sites, graph, bias){
       "src_node_i" = sapply(adj.pairs, "[[", 1),
       "src_node_j" = sapply(adj.pairs, "[[", 2)
     ) %>%
-      mutate("src_node_i_abund" = as.numeric(red.sites[src_node_i]$abundance)) %>%
-      mutate("src_node_j_abund" = as.numeric(red.sites[src_node_j]$abundance))
+      dplyr::mutate("src_node_i_abund" = as.numeric(red.sites[src_node_i]$abundance)) %>%
+      dplyr::mutate("src_node_j_abund" = as.numeric(red.sites[src_node_j]$abundance))
 
     source.paths <- mapply(function(x,y){
       all_simple_paths(as.undirected(graph), x, y)},
