@@ -68,9 +68,9 @@
 
 connect_satalite_vertices <- function(red.sites, graph, gap, bias){
   clus_mem <- clusters(graph)$membership
-  clus.ranges <- sort(unlist(reduce(
+  clus.ranges <- unlist(reduce(
     GenomicRanges::split(red.sites, clus_mem),
-    min.gapwidth = (gap-1))))
+    min.gapwidth = (gap-1)))
   sata.hits <- as.data.frame(
     findOverlaps(clus.ranges, maxgap = gap, drop.self = TRUE)
   )
