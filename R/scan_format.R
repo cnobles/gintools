@@ -38,8 +38,8 @@ scan_format <- function(query, subject, grouping = NULL){
 
   subject <- format(subject, grouping)
   query <- format(query, grouping)
-  subject$grp <- 0
-  query$grp <- 1
+  query$grp <- 0
+  subject$grp <- 1
   data <- rbind(subject, query) %>% arrange(chr, pos) %>% as.data.frame(.)
   data
 }
