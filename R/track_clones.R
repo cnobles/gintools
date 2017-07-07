@@ -67,7 +67,7 @@ track_clones <- function(sites.list, gap = 5L, track.origin = TRUE){
   )
 
   if(length(ovlp.grps) > 0){
-    ovlp.sites <- GenomicRanges::unlist(GRangesList(lapply(
+    ovlp.sites <- unlist(GRangesList(lapply(
       1:length(ovlp.grps),
       function(i){
         query <- grl.sites[[queryHits(ovlp.grps[i])]]
