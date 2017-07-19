@@ -63,7 +63,7 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
     sum(sites[x]$func.counts)
   })
   red.hits <- GenomicRanges::as.data.frame(
-    findOverlaps(red.sites, maxgap = min.gap, ignoreSelf = TRUE))
+    findOverlaps(red.sites, maxgap = min.gap, drop.self = TRUE))
 
   red.hits <- red.hits %>%
     dplyr::mutate(q_pos = start(red.sites[queryHits])) %>%

@@ -33,7 +33,7 @@
 #' revmap <- as.list(red.sites$revmap)
 #' red.sites$fragLengths <- sapply(revmap, length)
 #' red.hits <- GenomicRanges::as.data.frame(
-#'   findOverlaps(red.sites, maxgap = 1L, ignoreSelf = TRUE))
+#'   findOverlaps(red.sites, maxgap = 1L, drop.self = TRUE))
 #' red.hits <- red.hits %>%
 #'   mutate(q_pos = start(red.sites[queryHits])) %>%
 #'   mutate(s_pos = start(red.sites[subjectHits])) %>%
@@ -70,7 +70,7 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
   near.sources <- findOverlaps(
     red.sites[src.nodes],
     maxgap = gap,
-    ignoreSelf = TRUE
+    drop.self = TRUE
   )
 
   if(length(near.sources) > 0){

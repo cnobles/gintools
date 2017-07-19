@@ -62,8 +62,8 @@ track_clones <- function(sites.list, gap = 5L, track.origin = TRUE){
   ovlp.grps <- findOverlaps(
     flank(grl.sites, width = -1, start = TRUE),
     maxgap = gap,
-    ignoreSelf = TRUE,
-    ignoreRedundant = TRUE
+    drop.self = TRUE,
+    drop.redundant = TRUE
   )
 
   if(length(ovlp.grps) > 0){

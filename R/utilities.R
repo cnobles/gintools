@@ -371,10 +371,10 @@
       sites.gr <- with(x, GRanges(seqnames=posID2, IRanges(start=value, width=1),
                                   strand="*", freq))
 
-      # the key part is ignoreSelf=TRUE,ignoreRedundant=FALSE..
+      # the key part is drop.self=TRUE,drop.redundant=FALSE..
       # helps overwrite values at later step
-      res <- as.data.frame(findOverlaps(sites.gr, ignoreSelf=TRUE,
-                                                  ignoreRedundant=FALSE,
+      res <- as.data.frame(findOverlaps(sites.gr, drop.self=TRUE,
+                                                  drop.redundant=FALSE,
                                                   select="all",
                                                   maxgap=windowSize))
       if(nrow(res)>0) {

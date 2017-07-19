@@ -19,7 +19,7 @@
 #' .generate_test_granges()
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 .generate_test_granges <- function(n_sites = 5, n_reads_p_site = 20,
                                    site_range = 1:1000,
