@@ -96,7 +96,8 @@ connect_satalite_vertices <- function(red.sites, graph, gap, bias){
         dplyr::mutate(sum_sat_abund = clus.data[.$sata_clus,]$sum_abund) %>%
         dplyr::mutate(is_upstream = source_pos < sata_pos) %>%
         filter(as.integer(min_src_abund) >= as.integer(min_sat_abund)) %>%
-        filter(sum_src_abund > sum_sat_abund)
+        filter(sum_src_abund > sum_sat_abund) %>%
+        filter(abs(source_clus - sata_clus) == 1)
     }else if(bias == "downstream"){
       sata.hits <- sata.hits %>%
         dplyr::mutate(source_pos = clus.data[source_clus,]$clus_pos_mean) %>%
@@ -107,7 +108,8 @@ connect_satalite_vertices <- function(red.sites, graph, gap, bias){
         dplyr::mutate(sum_sat_abund = clus.data[.$sata_clus,]$sum_abund) %>%
         dplyr::mutate(is_downstream = source_pos > sata_pos) %>%
         filter(as.integer(min_src_abund) >= as.integer(min_sat_abund)) %>%
-        filter(sum_src_abund > sum_sat_abund)
+        filter(sum_src_abund > sum_sat_abund) %>%
+        filter(abs(source_clus - sata_clus) == 1)
     }else{
       stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
     }

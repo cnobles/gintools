@@ -29,15 +29,15 @@
   if(is.null(positions)){
     positions <- sort(sample(site_range, n_sites, replace = TRUE))
   }
-
+  
   message("True positions: ", paste(sort(positions), collapse = ", "))
   sort(GRanges(
-    seqnames = rep("chr1", n_sites*n_reads_p_site),
+    seqnames = Rle(values = "chr1", lengths = length(positions)*n_reads_p_site),
     ranges = IRanges(
       start = sapply(positions, function(x){
         x + sample(round(rnorm(n_reads_p_site, mean = 0, sd = stdev)))
       }),
       width = sample(read_width_range, n_reads_p_site, replace = TRUE)),
-    strand = rep("+", n_sites*n_reads_p_site)
+    strand = Rle(values = "+", lengths = length(positions)*n_reads_p_site)
   ))
 }
