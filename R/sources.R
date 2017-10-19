@@ -18,11 +18,12 @@
 #' @export
 
 sources <- function(graph){
-  if(!is.directed(graph)){
+  if(!igraph::is_directed(graph)){
     message("Graph provided is not a directed graph.")
     srcs <- c()
   }else{
-    srcs <- which(Matrix::colSums(get.adjacency(graph, sparse = TRUE)) == 0)
+    srcs <- which(Matrix::colSums(
+      igraph::get.adjacency(graph, sparse = TRUE)) == 0)
   }
   srcs
 }
