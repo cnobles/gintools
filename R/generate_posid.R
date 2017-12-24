@@ -52,6 +52,8 @@ generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL,
               please use alternative inputs.")
       stop()
     }
+  }else if(length(sites) == 0){
+    return(c())
   }else{
     if(length(seqnames) != 0 & length(strand) != 0 &
        length(start) != 0 & length(end) != 0){
