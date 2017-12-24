@@ -41,7 +41,7 @@
 
 generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL,
                            end=NULL){
-  if(length(sites) != 0){
+  if(!is.null(sites) & length(sites) != 0){
     if(class(sites) == "GRanges"){
       chr <- as.character(seqnames(sites))
       strand <- as.vector(strand(sites))
@@ -52,9 +52,10 @@ generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL,
               please use alternative inputs.")
       stop()
     }
-  }else{
-    if(length(seqnames) != 0 & length(strand) != 0 &
-       length(start) != 0 & length(end) != 0){
+  }else if(!is.null(sites) & length(sites) == 0){
+    posID <- character()
+  }else if(is.null(sites)){
+    if(!is.null(seqnames) & !is.null(strand) & !is.null(start) & !is.null(end)){
       chr <- as.character(seqnames)
       strand <- as.vector(strand)
       start <- as.integer(start)
