@@ -29,6 +29,11 @@
 #' @param lower_case logical, default is TRUE. Changes additional column names
 #' to all lower case characters. FALSE leaves the additional column names as
 #' original format.
+#' 
+#' @param split.sampleName logical, default is TRUE. Changes behavior of how to
+#' treat the sampleName column. If replicate information is not denoted by a 
+#' "-#" at the end of the sampleName, then creating the specimen list will fail.
+#' Set to FALSE if replicate information is not included.
 #'
 #' @examples
 #' dfr <- data.frame(
@@ -48,7 +53,7 @@
 #' @export
 
 db_to_granges <- function(dfr_from_db, keep.additional.columns = TRUE,
-                          lower_case = TRUE){
+                          lower_case = TRUE, split.sampleName = TRUE){
   dfr <- dfr_from_db
   dfr <- dfr[, !duplicated(names(dfr))]
 
@@ -63,10 +68,14 @@ db_to_granges <- function(dfr_from_db, keep.additional.columns = TRUE,
                 ranges = ranges,
                 strand = dfr$strand)
 
-  specimen.list <- strsplit(dfr$sampleName, split="-")
-  mcols <- data.frame("sampleName" = dfr$sampleName,
-                      "specimen" = sapply(specimen.list, "[[", 1),
-                      stringsAsFactors = FALSE)
+  if(split.sampleName){
+    specimen.list <- strsplit(dfr$sampleName, split="-")
+    mcols <- data.frame("sampleName" = dfr$sampleName,
+                        "specimen" = sapply(specimen.list, "[[", 1),
+                        stringsAsFactors = FALSE)
+  }else{
+    mcols <- data.frame("sampleName" = dfr$sampleName, stringsAsFactors = FALSE)
+  }
 
   if(keep.additional.columns){
     std.columns <- c("sampleName", "position", "chr", "strand", "breakpoint")
