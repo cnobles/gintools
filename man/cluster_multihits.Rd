@@ -45,4 +45,3 @@ information has been used.
 \author{
 Christopher Nobles, Ph.D.
 }
-

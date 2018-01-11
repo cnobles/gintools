@@ -24,4 +24,3 @@ sinks(g)
 \author{
 Christopher Nobles, Ph.D.
 }
-

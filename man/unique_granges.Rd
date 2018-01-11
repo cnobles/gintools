@@ -57,4 +57,3 @@ unique_granges(gr, sum.counts = TRUE, counts.col = "counts")
 \author{
 Christopher L. Nobles, Ph.D.
 }
-
