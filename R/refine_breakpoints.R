@@ -59,7 +59,7 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
     with.revmap = TRUE)
   red.sites$breakpointID <- seq(1:length(red.sites))
   revmap <- as.list(red.sites$revmap)
-  red.sites$abundance <- sapply(revmap, function(x){
+  red.sites$abundance <- sapply(revmap, function(x){ #Can use width(...@partitioning) since revmap is an RleList
     sum(sites[x]$func.counts)
   })
   red.hits <- GenomicRanges::as.data.frame(

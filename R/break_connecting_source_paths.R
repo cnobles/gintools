@@ -104,7 +104,7 @@ break_connecting_source_paths <- function(red.sites, graph, bias){
       target.edges <- bind_rows(lapply(1:nrow(edges.to.edit), function(i){
         sink <- edges.to.edit[i, "sink_node"]
         path <- as.numeric(source.paths[[i]])
-        pos <- grep(sink, path)
+        pos <- which(path == sink)
         data.frame(
           "sink" = rep(sink, 2),
           "adj_node" = c(path[pos-1], path[pos+1])
@@ -132,7 +132,7 @@ break_connecting_source_paths <- function(red.sites, graph, bias){
       target.edges <- bind_rows(lapply(1:nrow(edges.to.edit), function(i){
         sink <- edges.to.edit[i, "sink_node"]
         path <- as.numeric(source.paths[[i]])
-        pos <- grep(sink, path)
+        pos <- which(path == sink)
         data.frame(
           "sink" = rep(sink, 2),
           "adj_node" = c(path[pos-1], path[pos+1])
