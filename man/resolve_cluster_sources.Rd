@@ -39,7 +39,7 @@ red.sites$siteID <- seq(1:length(red.sites))
 revmap <- as.list(red.sites$revmap)
 red.sites$abundance <- sapply(revmap, length)
 red.hits <- GenomicRanges::as.data.frame(
-  findOverlaps(red.sites, maxgap = 1L, ignoreSelf = TRUE))
+  findOverlaps(red.sites, maxgap = 1L, drop.self = TRUE))
 red.hits <- red.hits \%>\%
   mutate(q_pos = start(red.sites[queryHits])) \%>\%
   mutate(s_pos = start(red.sites[subjectHits])) \%>\%
@@ -74,4 +74,3 @@ resolve_cluster_sources(red.sites, g, "upstream")
 \author{
 Christopher Nobles, Ph.D.
 }
-

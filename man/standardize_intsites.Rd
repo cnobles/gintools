@@ -36,4 +36,3 @@ standardize_intsites(gr)
 \author{
 Christopher Nobles, Ph.D.
 }
-

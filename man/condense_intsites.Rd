@@ -52,4 +52,3 @@ condense_intsites(std.gr, return.abundance = TRUE)
 \author{
 Christopher Nobles, Ph.D.
 }
-

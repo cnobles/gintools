@@ -65,4 +65,3 @@ normalize_multihit_clusters(gr, grouping = 'patient', cores = 2)
 \author{
 Christopher Nobles, Ph.D.
 }
-

@@ -44,4 +44,3 @@ plot.igraph(graph)
 \author{
 Christopher Nobles, Ph.D.
 }
-

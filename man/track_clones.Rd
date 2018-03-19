@@ -53,4 +53,3 @@ track_clones(grl, gap = 0L, track.origin = TRUE)
 \author{
 Christopher Nobles, Ph.D.
 }
-

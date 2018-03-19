@@ -23,12 +23,17 @@
 #' INSPIIRED integration site database. Any data.frame can be used, but requires
 #' the columns: chr, position, breakpoint, strand, and sampleName.
 #'
-#' @param keep.additional.columns logical to specify whether to keep any columns
+#' @param keep_additional_columns logical to specify whether to keep any columns
 #' besides those required in the data.frame.
 #'
 #' @param lower_case logical, default is TRUE. Changes additional column names
 #' to all lower case characters. FALSE leaves the additional column names as
 #' original format.
+#' 
+#' @param split_sampleName logical, default is TRUE. Changes behavior of how to
+#' treat the sampleName column. If replicate information is not denoted by a 
+#' "-#" at the end of the sampleName, then creating the specimen list will fail.
+#' Set to FALSE if replicate information is not included.
 #'
 #' @examples
 #' dfr <- data.frame(
@@ -42,13 +47,13 @@
 #'
 #' db_to_granges(dfr_from_db = dfr)
 #'
-#' db_to_granges(dfr_from_db = dfr, keep.additional.columns = TRUE)
+#' db_to_granges(dfr_from_db = dfr, keep_additional_columns = FALSE)
 #'
 #' @author Christopher Nobles, Ph.D.
 #' @export
 
-db_to_granges <- function(dfr_from_db, keep.additional.columns = TRUE,
-                          lower_case = TRUE){
+db_to_granges <- function(dfr_from_db, keep_additional_columns = TRUE,
+                          lower_case = TRUE, split_sampleName = TRUE){
   dfr <- dfr_from_db
   dfr <- dfr[, !duplicated(names(dfr))]
 
@@ -63,12 +68,16 @@ db_to_granges <- function(dfr_from_db, keep.additional.columns = TRUE,
                 ranges = ranges,
                 strand = dfr$strand)
 
-  specimen.list <- strsplit(dfr$sampleName, split="-")
-  mcols <- data.frame("sampleName" = dfr$sampleName,
-                      "specimen" = sapply(specimen.list, "[[", 1),
-                      stringsAsFactors = FALSE)
+  if(split_sampleName){
+    specimen.list <- strsplit(dfr$sampleName, split="-")
+    mcols <- data.frame("sampleName" = dfr$sampleName,
+                        "specimen" = sapply(specimen.list, "[[", 1),
+                        stringsAsFactors = FALSE)
+  }else{
+    mcols <- data.frame("sampleName" = dfr$sampleName, stringsAsFactors = FALSE)
+  }
 
-  if(keep.additional.columns){
+  if(keep_additional_columns){
     std.columns <- c("sampleName", "position", "chr", "strand", "breakpoint")
     are.there <- match(std.columns, colnames(dfr))
     add.cols <- grep(TRUE, is.na(match(names(dfr), names(dfr[,are.there]))))

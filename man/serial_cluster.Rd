@@ -38,4 +38,3 @@ serial_cluster(sites, gaps = c(1L, 5L, 10L))
 \author{
 Christopher Nobles, Ph.D.
 }
-

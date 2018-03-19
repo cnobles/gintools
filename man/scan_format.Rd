@@ -34,4 +34,3 @@ scan_format(gr1, gr2)
 \author{
 Christopher Nobles, Ph.D.
 }
-

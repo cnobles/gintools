@@ -35,4 +35,3 @@ refine_breakpoints(gr)
 \author{
 Christopher L. Nobles, Ph.D.
 }
-

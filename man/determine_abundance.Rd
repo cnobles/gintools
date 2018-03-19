@@ -44,4 +44,3 @@ determine_abundance(std.gr)
 \author{
 Christopher Nobles, Ph.D.
 }
-
