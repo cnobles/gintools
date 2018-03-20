@@ -1,14 +1,13 @@
 Package: gintools
-Type: Package
 Title: Genomic DNA Integration Analysis Tools
-Version: 0.1.0
-Author: Christopher Nobles
-Maintainer: Christopher Nobles <cnobles@upenn.edu>
+Version: 0.1.1
+Authors@R: person(
+  "Christopher", "Nobles", 
+  email = "chris.l.nobles@gmail.com", 
+  role = c("aut", "cre"))
 Description: Tools used for analysis and interpretation of genomic DNA
     integration elements, such as retroviruses, retroviral-based gene therapy
     vectors, retrotransposons, and more.
-License: GNU General Public License v3
-LazyData: TRUE
 Depends:
     R (>= 3.2),
     IRanges (>= 2.4.5),
@@ -16,11 +15,23 @@ Depends:
     igraph (>= 1.0.1),
     Matrix (>= 1.2-2),
     dplyr (>= 0.4.3)
+Imports:
+    dplyr,
+    GenomicRanges,
+    igraph,
+    IRanges,
+    magrittr,
+    Matrix,
+    parallel,
+    reldist,
+    S4Vectors
 Suggests:
     devtools,
     geneRxCluster,
-    Matrix,
     roxygen2,
     sonicLength,
     testthat
-RoxygenNote: 5.0.1
+License: GNU General Public License v3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1.9000

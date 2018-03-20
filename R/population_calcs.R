@@ -27,6 +27,7 @@
 #' pop_calcs(x, calc = "uc50")
 #'
 #' @author Christopher Nobles, Ph.D.
+#'
 #' @export
 
 pop_calcs <- function(x, calc){
@@ -53,10 +54,9 @@ calc_shannon <- function(x, base = exp(1)){
 }
 #' @describeIn pop_calcs Calculate gini index.
 calc_gini <- function(x){
-  stopifnot(require(reldist))
   x <- x[!is.na(x)]
   x <- x/sum(x)
-  gini <- gini(x)
+  gini <- reldist::gini(x)
   gini
 }
 

@@ -15,14 +15,15 @@
 #' sinks(g)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 sinks <- function(graph){
-  if(!is.directed(graph)){
+  if(!igraph::is_directed(graph)){
     message("Graph provided is not a directed graph.")
     snks <- c()
   }else{
-    snks <- which(Matrix::rowSums(get.adjacency(graph, sparse = TRUE)) == 0)
+    snks <- which(Matrix::rowSums(
+      igraph::get.adjacency(graph, sparse = TRUE)) == 0)
   }
   snks
 }

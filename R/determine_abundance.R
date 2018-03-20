@@ -29,7 +29,7 @@
 #' fragment length or "estAbund" to use the sonicLength package.
 #'
 #' @examples
-#' gr <- .generate_test_granges()
+#' gr <- gintools:::generate_test_granges()
 #' std.gr <- standardize_intsites(gr)
 #'
 #' determine_abundance(std.gr)

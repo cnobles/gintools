@@ -27,7 +27,7 @@ Given a GRanges object ....
 point positions have been adjusted based on the dataset and counts.
 }
 \examples{
-gr <- .generate_test_granges()
+gr <- gintools:::generate_test_granges()
 
 refine_breakpoints(gr)
 
@@ -35,4 +35,3 @@ refine_breakpoints(gr)
 \author{
 Christopher L. Nobles, Ph.D.
 }
-

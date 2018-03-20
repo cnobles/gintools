@@ -50,4 +50,3 @@ generate_posid(seqnames = chr, strand = strands, start = starts, end = ends)
 \author{
 Christopher Nobles, Ph.D.
 }
-

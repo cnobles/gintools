@@ -47,39 +47,43 @@
 #' @export
 
 track_clones <- function(sites.list, gap = 5L, track.origin = TRUE){
-  if(class(sites.list) == "list"){grl.sites <- GRangesList(sites.list)}
+  if(class(sites.list) == "list"){
+    grl.sites <- GenomicRanges::GRangesList(sites.list) }
   grl.sites <- sites.list
 
   if(track.origin){
     if(is.null(names(grl.sites))) names(grl.sites) <- 1:length(grl.sites)
-    grl.sites <- GRangesList(lapply(1:length(grl.sites), function(i){
-      sites <- sites.list[[i]]
-      sites$origin <- rep(names(grl.sites[i]), length(sites))
-      sites
+    grl.sites <- GenomicRanges::GRangesList(lapply(
+      1:length(grl.sites), function(i){
+        sites <- sites.list[[i]]
+        sites$origin <- rep(names(grl.sites[i]), length(sites))
+        sites
     }))
   }
 
-  ovlp.grps <- findOverlaps(
-    flank(grl.sites, width = -1, start = TRUE),
+  ovlp.grps <- GenomicRanges::findOverlaps(
+    GenomicRanges::flank(grl.sites, width = -1, start = TRUE),
     maxgap = gap,
-    ignoreSelf = TRUE,
-    ignoreRedundant = TRUE
+    drop.self = TRUE,
+    drop.redundant = TRUE
   )
 
   if(length(ovlp.grps) > 0){
-    ovlp.sites <- unlist(GRangesList(lapply(
+    ovlp.sites <- unlist(GenomicRanges::GRangesList(lapply(
       1:length(ovlp.grps),
       function(i){
-        query <- grl.sites[[queryHits(ovlp.grps[i])]]
-        subject <- grl.sites[[subjectHits(ovlp.grps[i])]]
-        hits <- findOverlaps(
-          flank(query, -1, start = TRUE),
-          flank(subject, -1, start = TRUE),
+        query <- grl.sites[[S4Vectors::queryHits(ovlp.grps[i])]]
+        subject <- grl.sites[[S4Vectors::subjectHits(ovlp.grps[i])]]
+        hits <- GenomicRanges::findOverlaps(
+          GenomicRanges::flank(query, -1, start = TRUE),
+          GenomicRanges::flank(subject, -1, start = TRUE),
           maxgap = gap)
         if(length(hits) > 0){
-          sites <- c(query[queryHits(hits)], subject[subjectHits(hits)])
+          sites <- c(
+            query[S4Vectors::queryHits(hits)],
+            subject[S4Vectors::subjectHits(hits)])
         }else{
-          sites <- GRanges()
+          sites <- GenomicRanges::GRanges()
         }
         sites
     })))
@@ -89,18 +93,18 @@ track_clones <- function(sites.list, gap = 5L, track.origin = TRUE){
 
   if(length(ovlp.grps) > 0){
     ovlp.sites$posid <- generate_posid(ovlp.sites)
-    sites.dfr <- distinct(
+    sites.dfr <- dplyr::distinct(
       GenomicRanges::as.data.frame(ovlp.sites, row.names = NULL))
-    ranges <- IRanges(start = sites.dfr$start, end = sites.dfr$end)
-    sites.gr <- GRanges(
+    ranges <- IRanges::IRanges(start = sites.dfr$start, end = sites.dfr$end)
+    sites.gr <- GenomicRanges::GRanges(
       seqnames = sites.dfr$seqnames,
       ranges = ranges,
       strand = sites.dfr$strand
     )
     mcols(sites.gr) <- sites.dfr[,c(6:length(sites.dfr))]
-    ovlp.list <- split(sites.gr, sites.gr$posid)
+    ovlp.list <- GenomicRanges::split(sites.gr, sites.gr$posid)
   }else{
-    ovlp.list <- GRangesList()
+    ovlp.list <- GenomicRanges::GRangesList()
   }
   message(paste("Number of overlaping sites:", length(ovlp.list)))
   ovlp.list

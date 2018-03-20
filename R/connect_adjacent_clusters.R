@@ -24,7 +24,7 @@
 #' choose if other decision metrics are tied.
 #'
 #' @examples
-#' gr <- .generate_test_granges(stdev = 3)
+#' gr <- gintools:::generate_test_granges(stdev = 3)
 #' red.sites <- reduce(
 #'   flank(gr, -1, start = TRUE),
 #'   min.gapwidth = 0L,
@@ -33,7 +33,7 @@
 #' revmap <- as.list(red.sites$revmap)
 #' red.sites$fragLengths <- sapply(revmap, length)
 #' red.hits <- GenomicRanges::as.data.frame(
-#'   findOverlaps(red.sites, maxgap = 1L, ignoreSelf = TRUE))
+#'   findOverlaps(red.sites, maxgap = 1L, drop.self = TRUE))
 #' red.hits <- red.hits %>%
 #'   mutate(q_pos = start(red.sites[queryHits])) %>%
 #'   mutate(s_pos = start(red.sites[subjectHits])) %>%
@@ -63,14 +63,16 @@
 #' connect_adjacent_clusters(red.sites, g, gap = 5L, "upstream")
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
+#' @importFrom magrittr %>%
+#'
 
 connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
   src.nodes <- sources(graph)
-  near.sources <- findOverlaps(
+  near.sources <- GenomicRanges::findOverlaps(
     red.sites[src.nodes],
     maxgap = gap,
-    ignoreSelf = TRUE
+    drop.self = TRUE
   )
 
   if(length(near.sources) > 0){
@@ -86,9 +88,10 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
       ) %>%
         dplyr::mutate(abund.i = red.sites[node.i]$abundance) %>%
         dplyr::mutate(abund.j = red.sites[node.j]$abundance) %>%
-        dplyr::mutate(pos.i = start(red.sites[node.i])) %>%
-        dplyr::mutate(pos.j = start(red.sites[node.j])) %>%
-        dplyr::mutate(strand = as.character(strand(red.sites[node.i]))) %>%
+        dplyr::mutate(pos.i = GenomicRanges::start(red.sites[node.i])) %>%
+        dplyr::mutate(pos.j = GenomicRanges::start(red.sites[node.j])) %>%
+        dplyr::mutate(strand = as.character(
+          GenomicRanges::strand(red.sites[node.i]))) %>%
         dplyr::mutate(is.upstream = ifelse(
           strand == "+",
           pos.i < pos.j,
@@ -100,9 +103,10 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
       ) %>%
         dplyr::mutate(abund.i = red.sites[node.i]$abundance) %>%
         dplyr::mutate(abund.j = red.sites[node.j]$abundance) %>%
-        dplyr::mutate(pos.i = start(red.sites[node.i])) %>%
-        dplyr::mutate(pos.j = start(red.sites[node.j])) %>%
-        dplyr::mutate(strand = as.character(strand(red.sites[node.i]))) %>%
+        dplyr::mutate(pos.i = GenomicRanges::start(red.sites[node.i])) %>%
+        dplyr::mutate(pos.j = GenomicRanges::start(red.sites[node.j])) %>%
+        dplyr::mutate(strand = as.character(
+          GenomicRanges::strand(red.sites[node.i]))) %>%
         dplyr::mutate(is.downstream = ifelse(
           strand == "+",
           pos.i > pos.j,
@@ -111,7 +115,7 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
       stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
     }
 
-    redundant_graph <- make_graph(
+    redundant_graph <- igraph::make_graph(
       edges = unlist(with(
         near.src.df,
         mapply(
@@ -119,28 +123,30 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
           1:nrow(near.src.df),
           match(paste(node.i, node.j), paste(node.j, node.i))
     ))))
-    redundant_groups <- clusters(redundant_graph)$membership
+    redundant_groups <- igraph::clusters(redundant_graph)$membership
 
     if(bias == "upstream"){
-      near.src.df <- mutate(near.src.df, redundant_grp = redundant_groups) %>%
-        filter(abund.i >= abund.j) %>%
-        group_by(redundant_grp) %>%
+      near.src.df <- dplyr::mutate(
+          near.src.df, redundant_grp = redundant_groups) %>%
+        dplyr::filter(abund.i >= abund.j) %>%
+        dplyr::group_by(redundant_grp) %>%
         dplyr::mutate(group_size = n()) %>%
         dplyr::mutate(keep = ifelse(
           group_size == 1,
           TRUE,
           is.upstream)) %>%
-        filter(keep)
+        dplyr::filter(keep)
     }else if(bias == "downstream"){
-      near.src.df <- mutate(near.src.df, redundant_grp = redundant_groups) %>%
-        filter(abund.i >= abund.j) %>%
-        group_by(redundant_grp) %>%
+      near.src.df <- dplyr::mutate(
+          near.src.df, redundant_grp = redundant_groups) %>%
+        dplyr::filter(abund.i >= abund.j) %>%
+        dplyr::group_by(redundant_grp) %>%
         dplyr::mutate(group_size = n()) %>%
         dplyr::mutate(keep = ifelse(
           group_size == 1,
           TRUE,
           is.downstream)) %>%
-        filter(keep)
+        dplyr::filter(keep)
     }
 
     edges.to.connect.near.srcs <- unlist(with(
@@ -151,5 +157,5 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
     edges.to.connect.near.srcs <- c()
   }
 
-  add.edges(graph, edges.to.connect.near.srcs)
+  igraph::add.edges(graph, edges.to.connect.near.srcs)
 }

@@ -15,24 +15,28 @@
 #' functions, specifically the scan statistics of gRxCluster.
 #'
 #' @examples
-#' gr1 <- .generate_test_granges()
-#' gr2 <- .generate_test_granges()
+#' gr1 <- gintools:::generate_test_granges()
+#' gr2 <- gintools:::generate_test_granges()
 #' scan_format(gr1, gr2)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
+#' @importFrom magrittr %>%
 
 scan_format <- function(query, subject, grouping = NULL){
   format <- function(gr, grouping = grouping){
     if(is.null(grouping)) gr$grp <- grouping <- "grp"
-    group_col <- grep(grouping, names(mcols(gr)))
+    group_col <- grep(grouping, names(GenomicRanges::mcols(gr)))
     gr <- sort(gr)
     df <- data.frame(
-      "chr" = seqnames(gr),
-      "pos" = ifelse(strand(gr) == "+", start(gr), end(gr)),
-      "grp" = mcols(gr)[, group_col]
+      "chr" = GenomicRanges::seqnames(gr),
+      "pos" = ifelse(
+        GenomicRanges::strand(gr) == "+",
+        GenomicRanges::start(gr),
+        GenomicRanges::end(gr)),
+      "grp" = GenomicRanges::mcols(gr)[, group_col]
     )
-    df <- distinct(df)
+    df <- dplyr::distinct(df)
     df[, c(1,2)]
   }
 

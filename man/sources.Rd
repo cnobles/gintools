@@ -24,4 +24,3 @@ sources(g)
 \author{
 Christopher Nobles, Ph.D.
 }
-

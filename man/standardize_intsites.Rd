@@ -28,7 +28,7 @@ Given a GRanges object ...
 site positions have been standardized with sites within the gap distance.
 }
 \examples{
-gr <- .generate_test_granges()
+gr <- gintools:::generate_test_granges()
 
 standardize_intsites(gr)
 
@@ -36,4 +36,3 @@ standardize_intsites(gr)
 \author{
 Christopher Nobles, Ph.D.
 }
-

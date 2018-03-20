@@ -1,6 +1,6 @@
 #' Generate a test GRanges object
 #'
-#' @usage .generate_test_granges(n_sites = 5, n_reads_p_site = 20, site_range = 1:1000, read_width_range = 30:100)
+#' @usage gintools:::generate_test_granges(n_sites = 5, n_reads_p_site = 20, site_range = 1:1000, read_width_range = 30:100)
 #'
 #' @param n_sites number of sites to generate
 #' @param n_reads_p_site number of reads per site
@@ -16,12 +16,12 @@
 #' distribution of widths for the sites.
 #'
 #' @examples
-#' .generate_test_granges()
+#' gintools:::generate_test_granges()
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
-.generate_test_granges <- function(n_sites = 5, n_reads_p_site = 20,
+generate_test_granges <- function(n_sites = 5, n_reads_p_site = 20,
                                    site_range = 1:1000,
                                    read_width_range = 30:100,
                                    stdev = 1,
@@ -31,13 +31,15 @@
   }
 
   message("True positions: ", paste(sort(positions), collapse = ", "))
-  sort(GRanges(
-    seqnames = rep("chr1", n_sites*n_reads_p_site),
-    ranges = IRanges(
+  sort(GenomicRanges::GRanges(
+    seqnames = S4Vectors::Rle(
+      values = "chr1", lengths = length(positions)*n_reads_p_site),
+    ranges = IRanges::IRanges(
       start = sapply(positions, function(x){
         x + sample(round(rnorm(n_reads_p_site, mean = 0, sd = stdev)))
       }),
       width = sample(read_width_range, n_reads_p_site, replace = TRUE)),
-    strand = rep("+", n_sites*n_reads_p_site)
+    strand = S4Vectors::Rle(
+      values = "+", lengths = length(positions)*n_reads_p_site)
   ))
 }

@@ -35,7 +35,7 @@ sites within the given GRanges object based on the unique fragment length
 (width) or utilizes the sonicLength package.
 }
 \examples{
-gr <- .generate_test_granges()
+gr <- gintools:::generate_test_granges()
 std.gr <- standardize_intsites(gr)
 
 determine_abundance(std.gr)
@@ -44,4 +44,3 @@ determine_abundance(std.gr)
 \author{
 Christopher Nobles, Ph.D.
 }
-

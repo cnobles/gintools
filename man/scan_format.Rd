@@ -26,12 +26,11 @@ Formats a GRanges object for use with the geneRxCluster
 functions, specifically the scan statistics of gRxCluster.
 }
 \examples{
-gr1 <- .generate_test_granges()
-gr2 <- .generate_test_granges()
+gr1 <- gintools:::generate_test_granges()
+gr2 <- gintools:::generate_test_granges()
 scan_format(gr1, gr2)
 
 }
 \author{
 Christopher Nobles, Ph.D.
 }
-

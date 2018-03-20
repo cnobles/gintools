@@ -35,7 +35,7 @@ first by abundance and secondly by an upstream bias.
 distance from clusters are now connected to the edge of the clusters.
 }
 \examples{
-gr <- .generate_test_granges(stdev = 3)
+gr <- gintools:::generate_test_granges(stdev = 3)
 red.sites <- reduce(
   flank(gr, -1, start = TRUE),
   min.gapwidth = 0L,
@@ -44,7 +44,7 @@ red.sites$siteID <- seq(1:length(red.sites))
 revmap <- as.list(red.sites$revmap)
 red.sites$fragLengths <- sapply(revmap, length)
 red.hits <- GenomicRanges::as.data.frame(
-  findOverlaps(red.sites, maxgap = 1L, ignoreSelf = TRUE))
+  findOverlaps(red.sites, maxgap = 1L, drop.self = TRUE))
 red.hits <- red.hits \%>\%
   mutate(q_pos = start(red.sites[queryHits])) \%>\%
   mutate(s_pos = start(red.sites[subjectHits])) \%>\%
@@ -73,4 +73,3 @@ connect_satalite_vertices(red.sites, g, gap = 2L, "upstream")
 \author{
 Christopher Nobles, Ph.D.
 }
-
