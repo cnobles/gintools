@@ -1,10 +1,10 @@
 library(GenomicRanges)
-library(gintools)
+#library(gintools)
 library(ggplot2)
 library(stringr)
 library(reshape2)
 
-testDataGr <- gintools:::.generate_test_granges(
+testDataGr <- gintools:::generate_test_granges(
   positions = c(150, 250, 350, 450), n_reads_p_site = 50, stdev = 2.5)
 
 initialPlot <- ggplot(as.data.frame(testDataGr), aes(x = start)) + geom_bar()
@@ -18,7 +18,7 @@ stdSitesOutput <- reduce(flank(standardize_intsites(testDataGr), -1), min.gapwid
 get_bidirectional_edge_ids <- function(graph){
   require(dplyr)
   edLogic <- get.data.frame(graph) %>%
-    mutate(n = 1:n()) %>% 
+    mutate(n = 1:n()) %>%
     group_by(n) %>%
     mutate(eid = paste0(min(from, to), ":", max(from, to))) %>%
     ungroup() %>%
@@ -26,9 +26,9 @@ get_bidirectional_edge_ids <- function(graph){
     mutate(count = n()) %>%
     ungroup() %>%
     filter(count == 2)
-  
+
   if(nrow(edLogic) > 0){
-    edges <- unlist(mapply(c, edLogic$from, edLogic$to, SIMPLIFY = FALSE))  
+    edges <- unlist(mapply(c, edLogic$from, edLogic$to, SIMPLIFY = FALSE))
     return(sort(get.edge.ids(graph, edges)))
   }else{
     return(c())
@@ -43,7 +43,7 @@ p0 <- ggplot(data.frame(num = testData), aes(x = num)) + geom_bar()
 
 
 # find local maxima
-## build linear connections to form graph 
+## build linear connections to form graph
 ir <- IRanges(start = testData, width = 1)
 base.ir <- reduce(ir, min.gapwidth = 0L, with.revmap = TRUE)
 df <- data.frame(
@@ -70,7 +70,7 @@ ed <- unlist(with(el, mapply(c, src, snk, SIMPLIFY = FALSE)))
 
 g.1 <- add_edges(g, ed)
 pg1 <- plot(
-  g.1, edge.arrow.size = 2/3, edge.arrow.width = 1, vertex.size = 5, 
+  g.1, edge.arrow.size = 2/3, edge.arrow.width = 1, vertex.size = 5,
   frame = TRUE, asp = 0, edge.curved = FALSE,
   layout = matrix(c(df$pos, df$count), ncol = 2))
 
@@ -107,17 +107,17 @@ if(bias == "upstream"){
 }
 
 break.ed <- unlist(mapply(
-  c, 
-  br.df$snk, 
+  c,
+  br.df$snk,
   mapply(
-    function(i,j) br.df[i,j], 
-    i = 1:nrow(br.df), 
-    j = 1+break.node), 
+    function(i,j) br.df[i,j],
+    i = 1:nrow(br.df),
+    j = 1+break.node),
   SIMPLIFY = FALSE))
 edges.to.break <- get.edge.ids(g.1, break.ed, directed = FALSE)
 g.2 <- delete_edges(g.1, edges.to.break)
 pg2 <- plot(
-  g.2, edge.arrow.size = 2/3, edge.arrow.width = 1, vertex.size = 5, 
+  g.2, edge.arrow.size = 2/3, edge.arrow.width = 1, vertex.size = 5,
   frame = TRUE, asp = 0, edge.curved = FALSE,
   layout = matrix(c(df$pos, df$count), ncol = 2))
 
@@ -145,8 +145,8 @@ bi.node.df$peak.node <- with(bi.node.df, node.count == clus.max.count)
 
 # peak node edges will be determined by bias
 bi.node.df$rm.edge <- with(bi.node.df, ifelse(
-  peak.node, ifelse(node < adj.node.1, 
-    
+  peak.node, ifelse(node < adj.node.1,
+
   )
 ))
 

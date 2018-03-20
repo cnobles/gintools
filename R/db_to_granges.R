@@ -29,9 +29,9 @@
 #' @param lower_case logical, default is TRUE. Changes additional column names
 #' to all lower case characters. FALSE leaves the additional column names as
 #' original format.
-#' 
+#'
 #' @param split_sampleName logical, default is TRUE. Changes behavior of how to
-#' treat the sampleName column. If replicate information is not denoted by a 
+#' treat the sampleName column. If replicate information is not denoted by a
 #' "-#" at the end of the sampleName, then creating the specimen list will fail.
 #' Set to FALSE if replicate information is not included.
 #'
@@ -62,9 +62,10 @@ db_to_granges <- function(dfr_from_db, keep_additional_columns = TRUE,
     dfr$breakpoint <- dfr$position + breakpoints
   }
 
-  ranges <- IRanges(start = ifelse(dfr$strand == "+", dfr$position, dfr$breakpoint),
-                    end = ifelse(dfr$strand == "+", dfr$breakpoint, dfr$position))
-  gr <- GRanges(seqnames = dfr$chr,
+  ranges <- IRanges::IRanges(
+    start = ifelse(dfr$strand == "+", dfr$position, dfr$breakpoint),
+    end = ifelse(dfr$strand == "+", dfr$breakpoint, dfr$position))
+  gr <- GenomicRanges::GRanges(seqnames = dfr$chr,
                 ranges = ranges,
                 strand = dfr$strand)
 
@@ -86,7 +87,8 @@ db_to_granges <- function(dfr_from_db, keep_additional_columns = TRUE,
     mcols <- cbind(mcols, cols)
   }
 
-  mcols(gr) <- mcols
-  if(lower_case) names(mcols(gr)) <- tolower(names(mcols(gr)))
+  GenomicRanges::mcols(gr) <- mcols
+  if(lower_case) names(GenomicRanges::mcols(gr)) <- tolower(
+    names(GenomicRanges::mcols(gr)))
   gr
 }

@@ -30,7 +30,7 @@ first on abundance, and secondly on an upstream bias for tie breaking.
 sources within the gap distance are joined.
 }
 \examples{
-gr <- .generate_test_granges(stdev = 3)
+gr <- gintools:::generate_test_granges(stdev = 3)
 red.sites <- reduce(
   flank(gr, -1, start = TRUE),
   min.gapwidth = 0L,

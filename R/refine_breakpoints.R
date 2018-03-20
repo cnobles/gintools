@@ -18,15 +18,18 @@
 #' @param sata.gap integer maximum distance to consider combining break points.
 #'
 #' @examples
-#' gr <- .generate_test_granges()
+#' gr <- gintools:::generate_test_granges()
 #'
 #' refine_breakpoints(gr)
 #'
 #' @author Christopher L. Nobles, Ph.D.
+#'
+#' @importFrom magrittr %>%
+#'
 #' @export
+#'
 
 refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L){
-  require(gintools)
 
   message(paste0("Refining ", length(sites), " break points."))
   message("Generating initial graph by connecting positions with 1 nt difference.")
@@ -39,9 +42,9 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
   # found.
 
   if(!is.null(counts)){
-    if(counts %in% names(mcols(sites))){
-      counts_pos <- grep(counts, names(mcols(sites)))
-      sites$func.counts <- mcols(sites)[,counts_pos]
+    if(counts %in% names(GenomicRanges::mcols(sites))){
+      counts_pos <- grep(counts, names(GenomicRanges::mcols(sites)))
+      sites$func.counts <- GenomicRanges::mcols(sites)[,counts_pos]
     }else{
       stop("Could not identify 'counts' column.")
     }
@@ -53,24 +56,25 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
   # Reduce the genomic locations of break points down to only unique positions,
   # and identify the abundance of the positions
 
-  red.sites <- reduce(
-    flank(sites, -1, start = FALSE),
+  red.sites <- GenomicRanges::reduce(
+    GenomicRanges::flank(sites, -1, start = FALSE),
     min.gapwidth = 0L,
     with.revmap = TRUE)
   red.sites$breakpointID <- seq(1:length(red.sites))
-  revmap <- as.list(red.sites$revmap)
+  revmap <- IRanges::as.list(red.sites$revmap)
   red.sites$abundance <- sapply(revmap, function(x){ #Can use width(...@partitioning) since revmap is an RleList
     sum(sites[x]$func.counts)
   })
   red.hits <- GenomicRanges::as.data.frame(
-    findOverlaps(red.sites, maxgap = min.gap, drop.self = TRUE))
+    GenomicRanges::findOverlaps(red.sites, maxgap = min.gap, drop.self = TRUE))
 
   red.hits <- red.hits %>%
     dplyr::mutate(q_pos = start(red.sites[queryHits])) %>%
     dplyr::mutate(s_pos = start(red.sites[subjectHits])) %>%
     dplyr::mutate(q_abund = red.sites[queryHits]$abundance) %>%
     dplyr::mutate(s_abund = red.sites[subjectHits]$abundance) %>%
-    dplyr::mutate(strand = as.vector(strand(red.sites[queryHits]))) %>%
+    dplyr::mutate(strand = as.vector(
+      GenomicRanges::strand(red.sites[queryHits]))) %>%
     dplyr::mutate(is.downstream = ifelse(
       strand == "+",
       q_pos > s_pos,
@@ -80,20 +84,20 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
       q_abund == s_abund,
       is.downstream,
       keep)) %>%
-    filter(keep)
+    dplyr::filter(keep)
 
   # Construct initial graph, the graph will be modified during other parts of
   # the function and can be used to identify clusters as well as 'sources'
   # within those clusters as it's a directed graph. Sources are identified and
   # used to identify the original position given a distribution.
 
-  g <- make_empty_graph(n = length(red.sites), directed = TRUE) %>%
-    add_edges(unlist(mapply(
+  g <- igraph::make_empty_graph(n = length(red.sites), directed = TRUE) %>%
+    igraph::add_edges(unlist(mapply(
       c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
 
-  red.sites$clusID <- clusters(g)$membership
+  red.sites$clusID <- igraph::clusters(g)$membership
 
-  message(paste0("Initial cluster count: ", clusters(g)$no))
+  message(paste0("Initial cluster count: ", igraph::clusters(g)$no))
 
   # Identify satalite positions that should be included in clusters up to the
   # sata.gap max. This portion of the function tries to reach out to up to the
@@ -105,10 +109,10 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
 
   lapply(2:sata.gap, function(gap){
     g <<- connect_satalite_vertices(red.sites, g, gap, "downstream")
-    red.sites$clusID <<- clusters(g)$membership
+    red.sites$clusID <<- igraph::clusters(g)$membership
   })
 
-  message("Clusters after satalite connecting: ", clusters(g)$no)
+  message("Clusters after satalite connecting: ", igraph::clusters(g)$no)
 
   # During these steps of expanding the graph, it's possible that clusters grew
   # larger than they needed to be. This could be identified by seeing multiple
@@ -120,7 +124,7 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
   g <- break_connecting_source_paths(red.sites, g, "downstream")
   red.sites$clusID <- clusters(g)$membership
 
-  message(paste0("Final break point cluster count: ", clusters(g)$no))
+  message(paste0("Final break point cluster count: ", igraph::clusters(g)$no))
 
   # As cluster membership has been determined, the remaining section of the
   # function serves to consolidate the information and correct the original
@@ -129,19 +133,22 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
   src.nodes <- sources(g)
 
   clus.data <- data.frame(
-    "clusID" = 1:clusters(g)$no,
-    "chr" = seqnames(red.sites[src.nodes]),
-    "strand" = strand(red.sites[src.nodes]),
-    "breakpoint" = start(red.sites[src.nodes]),
-    "width" = width(unlist(range(
+    "clusID" = 1:igraph::clusters(g)$no,
+    "chr" = GenomicRanges::seqnames(red.sites[src.nodes]),
+    "strand" = GenomicRanges::strand(red.sites[src.nodes]),
+    "breakpoint" = GenomicRanges::start(red.sites[src.nodes]),
+    "width" = GenomicRanges::width(unlist(range(
       GenomicRanges::split(red.sites, red.sites$clusID))))
   )
 
-  sites <- sites[unlist(as.list(red.sites$revmap))]
-  sites$clusID <- as.numeric(Rle(
-    clusters(g)$membership,
+  sites <- sites[unlist(IRanges::as.list(red.sites$revmap))]
+  sites$clusID <- as.numeric(S4Vectors::Rle(
+    igraph::clusters(g)$membership,
     sapply(red.sites$revmap, length)))
-  sites$called.bp <- ifelse(strand(sites) == "+", end(sites), start(sites))
+  sites$called.bp <- ifelse(
+    GenomicRanges::strand(sites) == "+",
+    GenomicRanges::end(sites),
+    GenomicRanges::start(sites))
   sites$adj.bp <- clus.data[match(sites$clusID, clus.data$clusID), "breakpoint"]
 
   message(paste0("Cumulative displacement per range: ",
@@ -149,9 +156,15 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
                    sum(abs(sites$called.bp - sites$adj.bp))/length(sites),
                    digits = 1)))
 
-  ranges(sites) <- IRanges(
-    start = ifelse(strand(sites) == "+", start(sites), sites$adj.bp),
-    end = ifelse(strand(sites) == "+", sites$adj.bp, end(sites))
+  ranges(sites) <- IRanges::IRanges(
+    start = ifelse(
+      GenomicRanges::strand(sites) == "+",
+      GenomicRanges::start(sites),
+      GenomicRanges::sites$adj.bp),
+    end = ifelse(
+      GenomicRanges::strand(sites) == "+",
+      sites$adj.bp,
+      GenomicRanges::end(sites))
   )
 
   sites <- sites[order(sites$ori.order)]

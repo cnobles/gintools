@@ -37,15 +37,17 @@
 #' generate_posid(seqnames = chr, strand = strands, start = starts, end = ends)
 #'
 #' @author Christopher Nobles, Ph.D.
+#'
 #' @export
 
 generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL,
                            end=NULL){
   if(!is.null(sites) & length(sites) != 0){
     if(class(sites) == "GRanges"){
-      chr <- as.character(seqnames(sites))
-      strand <- as.vector(strand(sites))
-      pos <- ifelse(strand == "+", start(sites), end(sites))
+      chr <- as.character(GenomicRanges::seqnames(sites))
+      strand <- as.vector(GenomicRanges::strand(sites))
+      pos <- ifelse(
+        strand == "+", GenomicRanges::start(sites), GenomicRanges::end(sites))
       posID <- paste0(chr, strand, pos)
     }else{
       message("Sites provided not a GRanges object,

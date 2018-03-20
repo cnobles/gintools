@@ -35,18 +35,19 @@
 #' plot.igraph(graph)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 graph_clusters <- function(sites, gap){
   sites$clus.key <- 1:length(sites)
-  fl.sites <- flank(sites, width = -1, start = TRUE)
-  rd.sites <- reduce(fl.sites, min.gapwidth = gap, with.revmap = TRUE)
+  fl.sites <- GenomicRanges::flank(sites, width = -1, start = TRUE)
+  rd.sites <- GenomicRanges::reduce(
+    fl.sites, min.gapwidth = gap, with.revmap = TRUE)
   revmap <- rd.sites$revmap
-  axil_nodes <- as.numeric(Rle(
+  axil_nodes <- as.numeric(S4Vectors::Rle(
     values = sites[sapply(revmap, "[[", 1)]$clus.key,
     lengths = sapply(revmap, length)
   ))
-  nodes <- sites[unlist(as.list(revmap))]$clus.key
+  nodes <- sites[unlist(IRanges::as.list(revmap))]$clus.key
   edgelist <- unique(matrix( c(axil_nodes, nodes), ncol = 2 ))
-  graph.edgelist(edgelist, directed = FALSE)
+  igraph::graph.edgelist(edgelist, directed = FALSE)
 }

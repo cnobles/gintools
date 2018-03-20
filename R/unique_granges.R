@@ -23,7 +23,7 @@
 #' as counts.
 #'
 #' @examples
-#' gr <- .generate_test_granges(
+#' gr <- gintools:::generate_test_granges(
 #'   n_sites = 1,
 #'   n_reads_p_site = 12,
 #'   site_range = 1:20,
@@ -46,17 +46,17 @@
 #' unique_granges(gr, sum.counts = TRUE, counts.col = "counts")
 #'
 #' @author Christopher L. Nobles, Ph.D.
+#' @importFrom magrittr %>%
 #' @export
 
 unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL){
-  require(dplyr)
   # Checks and balance
   if(!class(sites) == "GRanges"){
     stop("Sites object is not a GRanges class.")}
   if(sum.counts & is.null(counts.col)){
     stop("Please specify the names of the column with count information.")}
   if(!is.null(counts.col)){
-    if(!counts.col %in% names(mcols(sites))){
+    if(!counts.col %in% names(GenomicRanges::mcols(sites))){
       stop("Could not find counts column name in sites object.")}}
 
   # Convert sites to a data.frame and remove duplicates
@@ -83,11 +83,11 @@ unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL){
   }
 
   # Rebuild GRanges object
-  gr <- GRanges(
+  gr <- GenomicRanges::GRanges(
     seqnames = df$seqnames,
-    ranges = IRanges(start = df$start, end = df$end),
+    ranges = IRanges::IRanges(start = df$start, end = df$end),
     strand = df$strand,
-    seqinfo = seqinfo(sites)
+    seqinfo = GenomicRanges::seqinfo(sites)
   )
 
   mcols(gr) <- df[,6:length(df)]

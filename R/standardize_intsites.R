@@ -19,7 +19,7 @@
 #' sites.
 #'
 #' @examples
-#' gr <- .generate_test_granges()
+#' gr <- gintools:::generate_test_granges()
 #'
 #' standardize_intsites(gr)
 #'
@@ -27,7 +27,6 @@
 #' @export
 
 standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 5L){
-  require(gintools)
 
   # Retain original order
   sites$ori.order <- 1:length(sites)
@@ -37,9 +36,9 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   # found.
 
   if(!is.null(counts)){
-    if(counts %in% names(mcols(sites))){
-      counts_pos <- grep(counts, names(mcols(sites)))
-      sites$func.counts <- mcols(sites)[,counts_pos]
+    if(counts %in% names(GenomicRanges::mcols(sites))){
+      counts_pos <- grep(counts, names(GenomicRanges::mcols(sites)))
+      sites$func.counts <- GenomicRanges::mcols(sites)[,counts_pos]
     }else{
       stop("Could not identify 'counts' column.")
     }
@@ -54,25 +53,26 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   message(paste0("Standardizing ", length(sites), " positions."))
   message("Generating initial graph by connecting positions with 1 nt difference.")
 
-  red.sites <- reduce(
-    flank(sites, -1, start = TRUE),
+  red.sites <- GenomicRanges::reduce(
+    GenomicRanges::flank(sites, -1, start = TRUE),
     min.gapwidth = 0L,
     with.revmap = TRUE)
   red.sites$siteID <- seq(1:length(red.sites))
-  revmap <- as.list(red.sites$revmap)
+  revmap <- IRanges::as.list(red.sites$revmap)
   red.sites$abundance <- sapply(revmap, function(x){
     sum(sites[x]$func.counts)
   })
 
   red.hits <- GenomicRanges::as.data.frame(
-    findOverlaps(red.sites, maxgap = min.gap, drop.self = TRUE))
+    GenomicRanges::findOverlaps(red.sites, maxgap = min.gap, drop.self = TRUE))
 
   red.hits <- red.hits %>%
-    dplyr::mutate(q_pos = start(red.sites[queryHits])) %>%
-    dplyr::mutate(s_pos = start(red.sites[subjectHits])) %>%
+    dplyr::mutate(q_pos = GenomicRanges::start(red.sites[queryHits])) %>%
+    dplyr::mutate(s_pos = GenomicRanges::start(red.sites[subjectHits])) %>%
     dplyr::mutate(q_abund = red.sites[queryHits]$abundance) %>%
     dplyr::mutate(s_abund = red.sites[subjectHits]$abundance) %>%
-    dplyr::mutate(strand = as.vector(strand(red.sites[queryHits]))) %>%
+    dplyr::mutate(strand = as.vector(
+      GenomicRanges::strand(red.sites[queryHits]))) %>%
     dplyr::mutate(is.upstream = ifelse(
       strand == "+",
       q_pos < s_pos,
@@ -82,19 +82,19 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
       q_abund == s_abund,
       is.upstream,
       keep)) %>%
-    filter(keep)
+    dplyr::filter(keep)
 
   # Construct initial graph, the graph will be modified during other parts of
   # the function and can be used to identify clusters as well as 'sources'
   # within those clusters as it's a directed graph. Sources are identified and
   # used to identify the original position given a distribution.
-  g <- make_empty_graph(n = length(red.sites), directed = TRUE) %>%
-    add_edges(unlist(mapply(
+  g <- igraph::make_empty_graph(n = length(red.sites), directed = TRUE) %>%
+    igraph::add_edges(unlist(mapply(
       c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
 
-  red.sites$clusID <- clusters(g)$membership
+  red.sites$clusID <- igraph::clusters(g)$membership
 
-  message(paste0("Initial cluster count: ", clusters(g)$no))
+  message(paste0("Initial cluster count: ", igraph::clusters(g)$no))
 
   # When clusters are formed of positions with equivalent abundance, both
   # directional edges are created. This type of cluster does not have sources
@@ -114,10 +114,10 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
 
   lapply(2:sata.gap, function(gap){
     g <<- connect_satalite_vertices(red.sites, g, gap, "upstream")
-    red.sites$clusID <<- clusters(g)$membership
+    red.sites$clusID <<- igraph::clusters(g)$membership
   })
 
-  message("Clusters after satalite connecting: ", clusters(g)$no)
+  message("Clusters after satalite connecting: ", igraph::clusters(g)$no)
 
   # During these steps of expanding the graph, it's possible that clusters grew
   # larger than they needed to be. This could be identified by seeing multiple
@@ -127,9 +127,9 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   # the largest distance appart from one another.
 
   g <- break_connecting_source_paths(red.sites, g, "upstream")
-  red.sites$clusID <- clusters(g)$membership
+  red.sites$clusID <- igraph::clusters(g)$membership
 
-  message(paste0("Clusters after clipping: ", clusters(g)$no))
+  message(paste0("Clusters after clipping: ", igraph::clusters(g)$no))
 
   # In the end, sources that are within the range of satalites (5L default),
   # should be grouped together. These sources should be connected by an edge,
@@ -139,9 +139,9 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   message("Connecting clusters with source nodes within ", sata.gap, " nt.")
 
   g <- connect_adjacent_clusters(red.sites, g, gap = sata.gap, "upstream")
-  red.sites$clusID <- clusters(g)$membership
+  red.sites$clusID <- igraph::clusters(g)$membership
 
-  message(paste0("Final cluster count: ", clusters(g)$no))
+  message(paste0("Final cluster count: ", igraph::clusters(g)$no))
 
   # If wide clusters are generated, these can confound the cluster source. For
   # this reason, the "true" source for the cluster will be resolved by
@@ -149,7 +149,7 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   # are decided by randon picking.
 
   g <- resolve_cluster_sources(red.sites, g, "upstream")
-  red.sites$clusID <- clusters(g)$membership
+  red.sites$clusID <- igraph::clusters(g)$membership
 
   # As cluster membership has been determined, the remaining section of the
   # function serves to consolidate the information and correct the original
@@ -158,27 +158,36 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   src.nodes <- sources(g)
 
   clus.data <- data.frame(
-    "clusID" = 1:clusters(g)$no,
-    "chr" = seqnames(red.sites[src.nodes]),
-    "strand" = strand(red.sites[src.nodes]),
-    "position" = start(red.sites[src.nodes]),
-    "width" = width(unlist(range(
+    "clusID" = 1:igraph::clusters(g)$no,
+    "chr" = GenomicRanges::seqnames(red.sites[src.nodes]),
+    "strand" = GenomicRanges::strand(red.sites[src.nodes]),
+    "position" = GenomicRanges::start(red.sites[src.nodes]),
+    "width" = GenomicRanges::width(unlist(range(
       GenomicRanges::split(red.sites, red.sites$clusID))))
   )
 
-  sites <- sites[unlist(as.list(red.sites$revmap))]
-  sites$clusID <- as.numeric(Rle(
-    clusters(g)$membership,
+  sites <- sites[unlist(IRanges::as.list(red.sites$revmap))]
+  sites$clusID <- as.numeric(S4Vectors::Rle(
+    igraph::clusters(g)$membership,
     sapply(red.sites$revmap, length)))
-  sites$called.pos <- ifelse(strand(sites) == "+", start(sites), end(sites))
+  sites$called.pos <- ifelse(
+    GenomicRanges::strand(sites) == "+",
+    GenomicRanges::start(sites),
+    GenomicRanges::end(sites))
   sites$adj.pos <- clus.data[match(sites$clusID, clus.data$clusID), "position"]
 
   message(paste0("Cumulative displacement per range: ",
                  sum(abs(sites$called.pos - sites$adj.pos))/length(sites)))
 
-  ranges(sites) <- IRanges(
-    start = ifelse(strand(sites) == "+", sites$adj.pos, start(sites)),
-    end = ifelse(strand(sites) == "+", end(sites), sites$adj.pos)
+  ranges(sites) <- IRanges::IRanges(
+    start = ifelse(
+      GenomicRanges::strand(sites) == "+",
+      sites$adj.pos,
+      GenomicRanges::start(sites)),
+    end = ifelse(
+      GenomicRanges::strand(sites) == "+",
+      GenomicRanges::end(sites),
+      sites$adj.pos)
   )
 
   sites <- sites[order(sites$ori.order)]

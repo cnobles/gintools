@@ -31,7 +31,7 @@ numerical values within the column for all combined rows.
 removing all duplicated rows), yet considers the meta data information.
 }
 \examples{
-gr <- .generate_test_granges(
+gr <- gintools:::generate_test_granges(
   n_sites = 1,
   n_reads_p_site = 12,
   site_range = 1:20,

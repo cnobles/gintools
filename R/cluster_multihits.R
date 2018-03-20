@@ -36,18 +36,18 @@
 #' @examples
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 cluster_multihits <- function(multihits, max_gap = 5L, iterations = 5L){
   stopifnot(class(multihits) == "GRanges")
-  isThere <- names(mcols(multihits))
+  isThere <- names(GenomicRanges::mcols(multihits))
   if(!all(c("ID", "readPairKey") %in% isThere)){
     stop("ID and readPairKey columns not found in multihits input.")}
 
   read_key <- data.frame(
     "readPairKey" = sample(
-      x = unique(mcols(multihits)$readPairKey),
-      size = length(unique(mcols(multihits)$readPairKey))))
+      x = unique(GenomicRanges::mcols(multihits)$readPairKey),
+      size = length(unique(GenomicRanges::mcols(multihits)$readPairKey))))
 
   if(iterations > 1){
     read_key$proc_group <- ceiling(
@@ -65,41 +65,44 @@ cluster_multihits <- function(multihits, max_gap = 5L, iterations = 5L){
   edgelist <- matrix(ncol = 2)
 
   lapply(multihit_list, function(mhits){
-    fl_mhits <- c(axil_gr, flank(mhits, width = -1, start = TRUE))
-    red_mhits <- reduce(fl_mhits, min.gapwidth = max_gap, with.revmap = TRUE)
-    revmap <- as.list(red_mhits$revmap)
+    fl_mhits <- c(
+      axil_gr, GenomicRanges::flank(mhits, width = -1, start = TRUE))
+    red_mhits <- GenomicRanges::reduce(
+      fl_mhits, min.gapwidth = max_gap, with.revmap = TRUE)
+    revmap <- IRanges::as.list(red_mhits$revmap)
 
-    axil_nodes <- as.character(Rle(
+    axil_nodes <- as.character(S4Vectors::Rle(
       values = fl_mhits$readPairKey[sapply(revmap, "[", 1)],
       length = sapply(revmap, length)
     ))
     nodes <- fl_mhits$readPairKey[unlist(revmap)]
     el <- unique(matrix( c(axil_nodes, nodes), ncol = 2 ))
-    clus <- clusters(graph.edgelist(el, directed = FALSE))
+    clus <- igraph::clusters(igraph::graph.edgelist(el, directed = FALSE))
     clus_key <- data.frame(
       row.names = unique(as.character(t(el))),
       "clusID" = clus$membership)
 
     axils <- fl_mhits[fl_mhits$readPairKey %in% axil_nodes]
-    axil_gr <<- unique(flank(axils, width = -1, start = TRUE))
+    axil_gr <<- unique(GenomicRanges::flank(axils, width = -1, start = TRUE))
     edgelist <<- rbind(edgelist, el)
   })
 
-  edgelist <- na.exclude(edgelist)
-  cluster_data <- clusters(graph.edgelist(edgelist, directed = FALSE))
+  edgelist <- S4Vectors::na.exclude(edgelist)
+  cluster_data <- igraph::clusters(igraph::graph.edgelist(
+    edgelist, directed = FALSE))
   key <- data.frame(row.names = unique(as.character(t(edgelist))),
                     "multihitID" = cluster_data$membership)
   multihits$multihitID <- key[multihits$readPairKey, "multihitID"]
 
   clusteredMultihitPositions <- split(
-    flank(multihits, width = -1, start = TRUE),
+    GenomicRanges::flank(multihits, width = -1, start = TRUE),
     multihits$multihitID)
   clusteredMultihitNames <- lapply(
     clusteredMultihitPositions,
     function(x) unique(x$readPairKey) )
-  clusteredMultihitPositions <- GRangesList(lapply(
+  clusteredMultihitPositions <- GenomicRanges::GRangesList(lapply(
     clusteredMultihitPositions,
-    function(x) unname(unique(granges(x))) ))
+    function(x) unname(unique(GenomicRanges::granges(x))) ))
   multihits_medians <- round(median(width(split(multihits, multihits$ID))))
   clusteredMultihitLengths <- lapply(
     clusteredMultihitNames,

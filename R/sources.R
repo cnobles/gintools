@@ -15,7 +15,7 @@
 #' sources(g)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 sources <- function(graph){
   if(!igraph::is_directed(graph)){

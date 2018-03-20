@@ -30,7 +30,7 @@ abundance and then
 has a single primary source node.
 }
 \examples{
-gr <- .generate_test_granges(stdev = 3)
+gr <- gintools:::generate_test_granges(stdev = 3)
 red.sites <- reduce(
   flank(gr, -1, start = TRUE),
   min.gapwidth = 0L,

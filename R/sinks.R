@@ -15,7 +15,7 @@
 #' sinks(g)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 sinks <- function(graph){
   if(!igraph::is_directed(graph)){

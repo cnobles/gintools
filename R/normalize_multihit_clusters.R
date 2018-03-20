@@ -56,24 +56,23 @@
 #' normalize_multihit_clusters(gr, grouping = 'patient', cores = 2)
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 normalize_multihit_clusters <- function(multihits.gr, gap = 5L,
                                         grouping = NULL, cores = NULL){
-  require(parallel)
 
   # Multihits must be standardized and have position clusterID info
-  if(!any(names(mcols(multihits.gr)) == "pos.clus")){
+  if(!any(names(GenomicRanges::mcols(multihits.gr)) == "pos.clus")){
     multihits.gr$pos.clus <- as.integer(factor(generate_posid(multihits.gr)))
   }
 
   if(is.null(grouping)){
-    multihits.gp <- GRangesList(multihits.gr)
-  }else if(grouping %in% names(mcols(multihits.gr))){
-    groups <- mcols(multihits.gr)[
+    multihits.gp <- GenomicRanges::GRangesList(multihits.gr)
+  }else if(grouping %in% names(GenomicRanges::mcols(multihits.gr))){
+    groups <- GenomicRanges::mcols(multihits.gr)[
       grep(grouping, names(mcols(multihits.gr)))]
     multihits.gr$groups <- groups[,1]
-    multihits.gp <- split(multihits.gr, multihits.gr$groups)
+    multihits.gp <- GenomicRanges::split(multihits.gr, multihits.gr$groups)
   }else{
     stop("Grouping partitioning failed. Make sure grouping is either NULL or
          refering to the correct column in GRanges object.")
@@ -86,42 +85,44 @@ normalize_multihit_clusters <- function(multihits.gr, gap = 5L,
     varlist = c("multihits.gp", "gap"),
     envir = environment())
 
-  norm.multi.list <- parLapply(cluster, 1:length(multihits.gp), function(i){
-    require(GenomicRanges)
-    require(igraph)
-    gr <- multihits.gp[[i]]
-    key <- unique(data.frame(
-      "multihitid" = as.character(gr$multihitid),
-      "clusid" = gr$pos.clus,
-      stringsAsFactors = FALSE
-    ))
+  norm.multi.list <- parallel::parLapply(
+    cluster, 1:length(multihits.gp), function(i){
+      require(GenomicRanges)
+      require(igraph)
+      gr <- multihits.gp[[i]]
+      key <- unique(data.frame(
+        "multihitid" = as.character(gr$multihitid),
+        "clusid" = gr$pos.clus,
+        stringsAsFactors = FALSE
+      ))
 
-    split.key <- split(key, key$clusid)
-    edgelist <- matrix(c(
-      as.character(Rle(
-        values = sapply(split.key, function(x) x$multihitid[1]),
-        lengths = sapply(split.key, nrow)
-      )),
-      unlist(sapply(split.key, function(x) x$multihitid))),
-      ncol = 2
-    )
-    graph <- graph.edgelist(edgelist, directed = FALSE)
-    norm.multi.id <- paste(i, clusters(graph)$membership, sep = ":")
-    names(norm.multi.id) <- names(clusters(graph)$membership)
-    key$norm.multihitid <- norm.multi.id[key$multihitid]
-    key$clusid <- NULL
-    key <- unique(key)
+      split.key <- split(key, key$clusid)
+      edgelist <- matrix(c(
+        as.character(S4Vectors::Rle(
+          values = sapply(split.key, function(x) x$multihitid[1]),
+          lengths = sapply(split.key, nrow)
+        )),
+        unlist(sapply(split.key, function(x) x$multihitid))),
+        ncol = 2
+      )
 
-    norm.key <- data.frame(
-      row.names = key$multihitid,
-      "norm.multihitid" = key$norm.multihitid
-    )
+      graph <- igraph::graph.edgelist(edgelist, directed = FALSE)
+      norm.multi.id <- paste(i, igraph::clusters(graph)$membership, sep = ":")
+      names(norm.multi.id) <- names(igraph::clusters(graph)$membership)
+      key$norm.multihitid <- norm.multi.id[key$multihitid]
+      key$clusid <- NULL
+      key <- unique(key)
 
-    gr$norm.multihitid <- norm.key[as.character(gr$multihitid), "norm.multihitid"]
-    gr
+      norm.key <- data.frame(
+        row.names = key$multihitid,
+        "norm.multihitid" = key$norm.multihitid
+      )
+
+      gr$norm.multihitid <- norm.key[as.character(gr$multihitid), "norm.multihitid"]
+      gr
   })
 
-  stopCluster(cl = cluster)
+  parallel::stopCluster(cl = cluster)
 
   norm.multi.gr <- do.call(c, lapply(1:length(norm.multi.list), function(i)
     norm.multi.list[[i]]))

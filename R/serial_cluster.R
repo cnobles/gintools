@@ -29,7 +29,7 @@
 #' serial_cluster(sites, gaps = c(1L, 5L, 10L))
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
 
 serial_cluster <- function(sites, gaps = c(0L, 1L, 2L)){
   if(is.null(names(sites))){
@@ -42,19 +42,19 @@ serial_cluster <- function(sites, gaps = c(0L, 1L, 2L)){
 
   lapply(gaps, function(gap){
     clusID <- paste0("clusID.", gap, "nt")
-    fl.sites <- flank(sites, -1, start = TRUE)
-    red.sites <- reduce(
+    fl.sites <- GenomicRanges::flank(sites, -1, start = TRUE)
+    red.sites <- GenomicRanges::reduce(
       fl.sites,
       min.gapwidth = gap,
       with.revmap = TRUE)
 
-    revmap <- as.list(red.sites$revmap)
-    groups <- Rle(
+    revmap <- IRanges::as.list(red.sites$revmap)
+    groups <- S4Vectors::Rle(
       values = 1:length(revmap),
       lengths = sapply(revmap, length)
     )
     mod.sites <- sites[unlist(revmap)]
-    mcols(mod.sites)[, clusID] <- groups
+    GenomicRanges::mcols(mod.sites)[, clusID] <- groups
     sites <<- mod.sites[origin_order]
   })
   if(wasNull) names(sites) <- NULL

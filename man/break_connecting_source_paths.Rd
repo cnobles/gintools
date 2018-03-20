@@ -32,7 +32,7 @@ upstream bias (downstream connection will be removed when everything ties).
 is present per cluster.
 }
 \examples{
-gr <- .generate_test_granges(stdev = 3)
+gr <- generate_test_granges(stdev = 3)
 red.sites <- reduce(
   flank(gr, -1, start = TRUE),
   min.gapwidth = 0L,

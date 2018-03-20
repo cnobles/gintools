@@ -35,7 +35,7 @@ first by abundance and secondly by an upstream bias.
 distance from clusters are now connected to the edge of the clusters.
 }
 \examples{
-gr <- .generate_test_granges(stdev = 3)
+gr <- gintools:::generate_test_granges(stdev = 3)
 red.sites <- reduce(
   flank(gr, -1, start = TRUE),
   min.gapwidth = 0L,

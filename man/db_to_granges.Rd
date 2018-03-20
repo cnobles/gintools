@@ -21,7 +21,7 @@ to all lower case characters. FALSE leaves the additional column names as
 original format.}
 
 \item{split_sampleName}{logical, default is TRUE. Changes behavior of how to
-treat the sampleName column. If replicate information is not denoted by a 
+treat the sampleName column. If replicate information is not denoted by a
 "-#" at the end of the sampleName, then creating the specimen list will fail.
 Set to FALSE if replicate information is not included.}
 }

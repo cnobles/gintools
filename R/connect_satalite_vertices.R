@@ -29,7 +29,7 @@
 #' choose if other decision metrics are tied.
 #'
 #' @examples
-#' gr <- .generate_test_granges(stdev = 3)
+#' gr <- gintools:::generate_test_granges(stdev = 3)
 #' red.sites <- reduce(
 #'   flank(gr, -1, start = TRUE),
 #'   min.gapwidth = 0L,
@@ -64,24 +64,24 @@
 #' connect_satalite_vertices(red.sites, g, gap = 2L, "upstream")
 #'
 #' @author Christopher Nobles, Ph.D.
-#' @export
+#'
+#' @importFrom magrittr %>%
 
 connect_satalite_vertices <- function(red.sites, graph, gap, bias){
-  clus_mem <- clusters(graph)$membership
-  clus.ranges <- unlist(reduce(
+  clus_mem <- igraph::clusters(graph)$membership
+  clus.ranges <- unlist(GenomicRanges::reduce(
     GenomicRanges::split(red.sites, clus_mem),
     min.gapwidth = (gap-1)))
   sata.hits <- as.data.frame(
-    findOverlaps(clus.ranges, maxgap = gap, drop.self = TRUE)
-  )
+    GenomicRanges::findOverlaps(clus.ranges, maxgap = gap, drop.self = TRUE))
   names(sata.hits) <- c("source_clus", "sata_clus")
 
   red.df <- GenomicRanges::as.data.frame(red.sites)
 
   if(nrow(sata.hits) > 0){
     clus.data <- red.df %>%
-      group_by(clusID) %>%
-      summarize(
+      dplyr::group_by(clusID) %>%
+      dplyr::summarize(
         clus_pos_mean = as.integer(mean(start)),
         min_abund = min(abundance),
         sum_abund = sum(abundance))
@@ -95,9 +95,10 @@ connect_satalite_vertices <- function(red.sites, graph, gap, bias){
         dplyr::mutate(sum_src_abund = clus.data[.$source_clus,]$sum_abund) %>%
         dplyr::mutate(sum_sat_abund = clus.data[.$sata_clus,]$sum_abund) %>%
         dplyr::mutate(is_upstream = source_pos < sata_pos) %>%
-        filter(as.integer(min_src_abund) >= as.integer(min_sat_abund)) %>%
-        filter(sum_src_abund > sum_sat_abund) %>%
-        filter(abs(source_clus - sata_clus) == 1)
+        dplyr::filter(
+          as.integer(min_src_abund) >= as.integer(min_sat_abund)) %>%
+        dplyr::filter(sum_src_abund > sum_sat_abund) %>%
+        dplry::filter(abs(source_clus - sata_clus) == 1)
     }else if(bias == "downstream"){
       sata.hits <- sata.hits %>%
         dplyr::mutate(source_pos = clus.data[source_clus,]$clus_pos_mean) %>%
@@ -107,40 +108,41 @@ connect_satalite_vertices <- function(red.sites, graph, gap, bias){
         dplyr::mutate(sum_src_abund = clus.data[.$source_clus,]$sum_abund) %>%
         dplyr::mutate(sum_sat_abund = clus.data[.$sata_clus,]$sum_abund) %>%
         dplyr::mutate(is_downstream = source_pos > sata_pos) %>%
-        filter(as.integer(min_src_abund) >= as.integer(min_sat_abund)) %>%
-        filter(sum_src_abund > sum_sat_abund) %>%
-        filter(abs(source_clus - sata_clus) == 1)
+        dplyr::filter(
+          as.integer(min_src_abund) >= as.integer(min_sat_abund)) %>%
+        dplyr::filter(sum_src_abund > sum_sat_abund) %>%
+        dplyr::filter(abs(source_clus - sata_clus) == 1)
     }else{
       stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
     }
 
     if(nrow(sata.hits) > 0){
-      clus.map <- findOverlaps(clus.ranges, red.sites)
+      clus.map <- GenomicRanges::findOverlaps(clus.ranges, red.sites)
       clus.list <- split(subjectHits(clus.map), queryHits(clus.map))
 
       if(bias == "upstream"){
         sata.hits <- sata.hits %>%
           dplyr::mutate(source_node = ifelse(
             sata.hits$is_upstream,
-            sapply(clus.list[sata.hits$source_clus], last),
-            sapply(clus.list[sata.hits$source_clus], first)
+            sapply(clus.list[sata.hits$source_clus], dplyr::last),
+            sapply(clus.list[sata.hits$source_clus], dplyr::first)
           )) %>%
           dplyr::mutate(sata_node = ifelse(
             is_upstream,
-            sapply(clus.list[sata_clus], first),
-            sapply(clus.list[sata_clus], last)
+            sapply(clus.list[sata_clus], dplyr::first),
+            sapply(clus.list[sata_clus], dplyr::last)
           ))
       }else if(bias == "downstream"){
         sata.hits <- sata.hits %>%
           dplyr::mutate(source_node = ifelse(
             sata.hits$is_downstream,
-            sapply(clus.list[sata.hits$source_clus], first),
-            sapply(clus.list[sata.hits$source_clus], last)
+            sapply(clus.list[sata.hits$source_clus], dplyr::first),
+            sapply(clus.list[sata.hits$source_clus], dplyr::last)
           )) %>%
           dplyr::mutate(sata_node = ifelse(
             is_downstream,
-            sapply(clus.list[sata_clus], last),
-            sapply(clus.list[sata_clus], first)
+            sapply(clus.list[sata_clus], dplyr::last),
+            sapply(clus.list[sata_clus], dplyr::first)
           ))
       }
 
@@ -154,5 +156,5 @@ connect_satalite_vertices <- function(red.sites, graph, gap, bias){
   }else{
     sata.edges <- c()
   }
-  add_edges(graph, sata.edges)
+  igraph::add_edges(graph, sata.edges)
 }

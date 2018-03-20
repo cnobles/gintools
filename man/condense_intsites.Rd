@@ -42,7 +42,7 @@ separated and analyzed independently by using the grouping option.
 integration positions in the reference genome.
 }
 \examples{
-gr <- .generate_test_granges()
+gr <- gintools:::generate_test_granges()
 std.gr <- standardize_intsites(gr)
 condense_intsites(std.gr)
 
