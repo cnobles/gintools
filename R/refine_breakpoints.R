@@ -35,7 +35,7 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
   message("Generating initial graph by connecting positions with 1 nt difference.")
 
   # Retain original order
-  sites$ori.order <- 1:length(sites)
+  sites$ori.order <- seq_along(sites)
 
   # Identify counts or abundance info, assume 1 if not given, but check for
   # a column named counts first and use, otherwise error out if column is not
@@ -60,30 +60,31 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
     GenomicRanges::flank(sites, -1, start = FALSE),
     min.gapwidth = 0L,
     with.revmap = TRUE)
-  red.sites$breakpointID <- seq(1:length(red.sites))
-  revmap <- IRanges::as.list(red.sites$revmap)
-  red.sites$abundance <- sapply(revmap, function(x){ #Can use width(...@partitioning) since revmap is an RleList
-    sum(sites[x]$func.counts)
-  })
+  red.sites$breakpointID <- seq_along(red.sites)
+  df.counts <- GenomicRanges::mcols(sites) %>%
+    as.data.frame(row.names = NULL)
+  df.counts <- df.counts[unlist(red.sites$revmap),] %>%
+    dplyr::mutate(grp = as.numeric(S4Vectors::Rle(
+      values = seq_along(red.sites),
+      lengths = S4Vectors::lengths(red.sites$revmap)))) %>%
+    dplyr::group_by(grp) %>%
+    dplyr::summarise(abund = sum(func.counts)) %>%
+    dplyr::ungroup()
+
+  red.sites$abund <- df.counts$abund
   red.hits <- GenomicRanges::as.data.frame(
     GenomicRanges::findOverlaps(red.sites, maxgap = min.gap, drop.self = TRUE))
 
   red.hits <- red.hits %>%
-    dplyr::mutate(q_pos = start(red.sites[queryHits])) %>%
-    dplyr::mutate(s_pos = start(red.sites[subjectHits])) %>%
-    dplyr::mutate(q_abund = red.sites[queryHits]$abundance) %>%
-    dplyr::mutate(s_abund = red.sites[subjectHits]$abundance) %>%
-    dplyr::mutate(strand = as.vector(
-      GenomicRanges::strand(red.sites[queryHits]))) %>%
-    dplyr::mutate(is.downstream = ifelse(
-      strand == "+",
-      q_pos > s_pos,
-      q_pos < s_pos)) %>%
-    dplyr::mutate(keep = q_abund > s_abund) %>%
-    dplyr::mutate(keep = ifelse(
-      q_abund == s_abund,
-      is.downstream,
-      keep)) %>%
+    dplyr::mutate(
+      q_pos = GenomicRanges::start(red.sites[queryHits]),
+      s_pos = GenomicRanges::start(red.sites[subjectHits]),
+      q_abund = red.sites[queryHits]$abund,
+      s_abund = red.sites[subjectHits]$abund,
+      strand = as.vector(GenomicRanges::strand(red.sites[queryHits])),
+      is.downstream = ifelse(strand == "+", q_pos > s_pos, q_pos < s_pos),
+      keep = q_abund > s_abund,
+      keep = ifelse(q_abund == s_abund, is.downstream, keep)) %>%
     dplyr::filter(keep)
 
   # Construct initial graph, the graph will be modified during other parts of
@@ -92,8 +93,7 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
   # used to identify the original position given a distribution.
 
   g <- igraph::make_empty_graph(n = length(red.sites), directed = TRUE) %>%
-    igraph::add_edges(unlist(mapply(
-      c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
+    igraph::add_edges(vzip(red.hits$queryHits, red.hits$subjectHits))
 
   red.sites$clusID <- igraph::clusters(g)$membership
 
@@ -107,7 +107,7 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
 
   message(paste0("Connecting satalite positions up to ", sata.gap, " nt apart."))
 
-  lapply(2:sata.gap, function(gap){
+  null <- lapply(2:sata.gap, function(gap){
     g <<- connect_satalite_vertices(red.sites, g, gap, "downstream")
     red.sites$clusID <<- igraph::clusters(g)$membership
   })
@@ -133,7 +133,7 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
   src.nodes <- sources(g)
 
   clus.data <- data.frame(
-    "clusID" = 1:igraph::clusters(g)$no,
+    "clusID" = seq_along(igraph::clusters(g)$csize),
     "chr" = GenomicRanges::seqnames(red.sites[src.nodes]),
     "strand" = GenomicRanges::strand(red.sites[src.nodes]),
     "breakpoint" = GenomicRanges::start(red.sites[src.nodes]),
@@ -160,7 +160,7 @@ refine_breakpoints <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 3L
     start = ifelse(
       GenomicRanges::strand(sites) == "+",
       GenomicRanges::start(sites),
-      GenomicRanges::sites$adj.bp),
+      sites$adj.bp),
     end = ifelse(
       GenomicRanges::strand(sites) == "+",
       sites$adj.bp,

@@ -68,9 +68,9 @@
 
 break_connecting_source_paths <- function(red.sites, graph, bias){
   src.nodes <- sources(graph)
-  sources.p.clus <- split(
-    src.nodes, igraph::clusters(graph)$membership[src.nodes])
-  clus.w.multi.sources <- sources.p.clus[sapply(sources.p.clus, length) > 1]
+  sources.p.clus <- IRanges::IntegerList(split(
+    src.nodes, igraph::clusters(graph)$membership[src.nodes]))
+  clus.w.multi.sources <- sources.p.clus[S4Vectors::lengths(sources.p.clus) > 1]
 
   if(length(clus.w.multi.sources) > 0){
     adj.pairs <- do.call(c, lapply(clus.w.multi.sources, function(x){
@@ -80,22 +80,15 @@ break_connecting_source_paths <- function(red.sites, graph, bias){
     snk.nodes <- sinks(graph)
 
     edges.to.edit <- data.frame(
-        "src_node_i" = sapply(adj.pairs, "[[", 1),
-        "src_node_j" = sapply(adj.pairs, "[[", 2)) %>%
+        "src_node_i" = unlist(adj.pairs)[
+          IRanges::start(IntegerList(adj.pairs)@partitioning)],
+        "src_node_j" = unlist(adj.pairs)[
+          IRanges::end(IntegerList(adj.pairs)@partitioning)]) %>%
       dplyr::mutate(
-        "src_node_i_abund" = as.numeric(red.sites[src_node_i]$abundance),
-        "src_node_j_abund" = as.numeric(red.sites[src_node_j]$abundance))
-
-    source.paths <- mapply(function(x,y){
-      igraph::all_simple_paths(igraph::as.undirected(graph), x, y)},
-      edges.to.edit$src_node_i,
-      edges.to.edit$src_node_j,
-      SIMPLIFY = FALSE)
-
-    edges.to.edit <- dplyr::mutate(edges.to.edit, sink_node = snk.nodes[
-      sapply(unlist(source.paths, recursive = FALSE), function(x){
-        which(snk.nodes %in% x)
-      })])
+        "src_node_i_abund" = as.numeric(red.sites[src_node_i]$abund),
+        "src_node_j_abund" = as.numeric(red.sites[src_node_j]$abund),
+        sink_node = IRanges::start(IRanges::findOverlapPairs(IRanges::IRanges(
+          src_node_i, src_node_j), IRanges(snk.nodes, width = 1))@second))
 
     # Identify the nodes adjacent to sinks between connected sources
     # then filter adjacent pairs to identify which edge should be 'clipped'.
@@ -108,61 +101,58 @@ break_connecting_source_paths <- function(red.sites, graph, bias){
       target.edges <- dplyr::bind_rows(lapply(
           1:nrow(edges.to.edit), function(i){
             sink <- edges.to.edit[i, "sink_node"]
-            path <- unlist(source.paths[[i]], recursive = TRUE)
+            path <- path <- unlist(igraph::all_simple_paths(
+              as.undirected(graph),
+              edges.to.edit[i, "src_node_i"],
+              edges.to.edit[i, "src_node_j"]))
             pos <- which(path == sink)
             data.frame(
               "sink" = rep(sink, 2),
-              "adj_node" = c(path[pos-1], path[pos+1])
-          )})) %>%
-        dplyr::mutate(sink_pos = GenomicRanges::start(red.sites[sink])) %>%
-        dplyr::mutate(adj_pos = GenomicRanges::start(red.sites[adj_node])) %>%
-        dplyr::mutate(adj_abund = red.sites[adj_node]$abundance) %>%
-        dplyr::mutate(nt_dist = abs(sink_pos - adj_pos)) %>%
-        dplyr::mutate(strand = as.character(
-          GenomicRanges::strand(red.sites[sink]))) %>%
-        dplyr::mutate(is.upstream = ifelse(
-          strand == "+",
-          sink_pos < adj_pos,
-          sink_pos > adj_pos)) %>%
+              "adj_node" = c(path[pos-1], path[pos+1])) })) %>%
+        dplyr::mutate(
+          sink_pos = GenomicRanges::start(red.sites[sink]),
+          adj_pos = GenomicRanges::start(red.sites[adj_node]),
+          adj_abund = red.sites[adj_node]$abund,
+          nt_dist = abs(sink_pos - adj_pos),
+          strand = as.character(GenomicRanges::strand(red.sites[sink])),
+          is.upstream = ifelse(
+            strand == "+", sink_pos < adj_pos, sink_pos > adj_pos)) %>%
         dplyr::group_by(sink) %>%
         dplyr::filter(nt_dist == max(nt_dist)) %>%
         dplyr::filter(adj_abund == min(adj_abund)) %>%
-        dplyr::mutate(group_size = n()) %>%
-        dplyr::mutate(keep = ifelse(
-            group_size == 1,
-            TRUE,
-            !is.upstream)) %>%
+        dplyr::mutate(
+          group_size = n(),
+          keep = ifelse(group_size == 1, TRUE, !is.upstream)) %>%
         dplyr::filter(keep) %>%
         dplyr::ungroup() %>%
         as.data.frame()
     }else if(bias == "downstream"){
       target.edges <- dplyr::bind_rows(lapply(
-          1:nrow(edges.to.edit), function(i){
+          seq_len(nrow(edges.to.edit)), function(i){
             sink <- edges.to.edit[i, "sink_node"]
-            path <- unlist(source.paths[[i]], recursive = TRUE)
+            path <- unlist(igraph::all_simple_paths(
+              as.undirected(graph),
+              edges.to.edit[i, "src_node_i"],
+              edges.to.edit[i, "src_node_j"]))
             pos <- which(path == sink)
             data.frame(
               "sink" = rep(sink, 2),
-              "adj_node" = c(path[pos-1], path[pos+1])
-          )})) %>%
-        dplyr::mutate(sink_pos = GenomicRanges::start(red.sites[sink])) %>%
-        dplyr::mutate(adj_pos = GenomicRanges::start(red.sites[adj_node])) %>%
-        dplyr::mutate(adj_abund = red.sites[adj_node]$abundance) %>%
-        dplyr::mutate(nt_dist = abs(sink_pos - adj_pos)) %>%
-        dplyr::mutate(strand = as.character(
-          GenomicRanges::strand(red.sites[sink]))) %>%
-        dplyr::mutate(is.downstream = ifelse(
-          strand == "+",
-          sink_pos > adj_pos,
-          sink_pos < adj_pos)) %>%
+              "adj_node" = c(path[pos-1], path[pos+1])) })) %>%
+        dplyr::mutate(
+          sink_pos = GenomicRanges::start(red.sites[sink]),
+          adj_pos = GenomicRanges::start(red.sites[adj_node]),
+          adj_abund = red.sites[adj_node]$abund,
+          nt_dist = abs(sink_pos - adj_pos),
+          strand = as.character(
+            GenomicRanges::strand(red.sites[sink])),
+          is.downstream = ifelse(
+            strand == "+", sink_pos > adj_pos, sink_pos < adj_pos)) %>%
         dplyr::group_by(sink) %>%
         dplyr::filter(nt_dist == max(nt_dist)) %>%
         dplyr::filter(adj_abund == min(adj_abund)) %>%
-        dplyr::mutate(group_size = n()) %>%
-        dplyr::mutate(keep = ifelse(
-          group_size == 1,
-          TRUE,
-          !is.downstream)) %>%
+        dplyr::mutate(
+          group_size = n(),
+          keep = ifelse(group_size == 1, TRUE, !is.downstream)) %>%
         dplyr::filter(keep) %>%
         dplyr::ungroup() %>%
         as.data.frame()
@@ -170,10 +160,7 @@ break_connecting_source_paths <- function(red.sites, graph, bias){
       stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
     }
 
-    break.edges <- unlist(with(
-      target.edges,
-      mapply(c, sink, adj_node, SIMPLIFY = FALSE)
-    ))
+    break.edges <- with(target.edges, vzip(sink, adj_node))
 
     edge.ids.to.break <- igraph::get.edge.ids(
       graph, break.edges, directed = FALSE)

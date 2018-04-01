@@ -83,35 +83,37 @@ connect_satalite_vertices <- function(red.sites, graph, gap, bias){
       dplyr::group_by(clusID) %>%
       dplyr::summarize(
         clus_pos_mean = as.integer(mean(start)),
-        min_abund = min(abundance),
-        sum_abund = sum(abundance))
+        min_abund = min(abund),
+        sum_abund = sum(abund))
 
     if(bias == "upstream"){
       sata.hits <- sata.hits %>%
-        dplyr::mutate(source_pos = clus.data[source_clus,]$clus_pos_mean) %>%
-        dplyr::mutate(sata_pos = clus.data[sata_clus,]$clus_pos_mean) %>%
-        dplyr::mutate(min_src_abund = clus.data[.$source_clus,]$min_abund) %>%
-        dplyr::mutate(min_sat_abund = clus.data[.$sata_clus,]$min_abund) %>%
-        dplyr::mutate(sum_src_abund = clus.data[.$source_clus,]$sum_abund) %>%
-        dplyr::mutate(sum_sat_abund = clus.data[.$sata_clus,]$sum_abund) %>%
-        dplyr::mutate(is_upstream = source_pos < sata_pos) %>%
+        dplyr::mutate(
+          source_pos = clus.data[source_clus,]$clus_pos_mean,
+          sata_pos = clus.data[sata_clus,]$clus_pos_mean,
+          min_src_abund = clus.data[.$source_clus,]$min_abund,
+          min_sat_abund = clus.data[.$sata_clus,]$min_abund,
+          sum_src_abund = clus.data[.$source_clus,]$sum_abund,
+          sum_sat_abund = clus.data[.$sata_clus,]$sum_abund,
+          is_upstream = source_pos < sata_pos) %>%
         dplyr::filter(
-          as.integer(min_src_abund) >= as.integer(min_sat_abund)) %>%
-        dplyr::filter(sum_src_abund > sum_sat_abund) %>%
-        dplry::filter(abs(source_clus - sata_clus) == 1)
+          as.integer(min_src_abund) >= as.integer(min_sat_abund),
+          sum_src_abund > sum_sat_abund,
+          abs(source_clus - sata_clus) == 1)
     }else if(bias == "downstream"){
       sata.hits <- sata.hits %>%
-        dplyr::mutate(source_pos = clus.data[source_clus,]$clus_pos_mean) %>%
-        dplyr::mutate(sata_pos = clus.data[sata_clus,]$clus_pos_mean) %>%
-        dplyr::mutate(min_src_abund = clus.data[.$source_clus,]$min_abund) %>%
-        dplyr::mutate(min_sat_abund = clus.data[.$sata_clus,]$min_abund) %>%
-        dplyr::mutate(sum_src_abund = clus.data[.$source_clus,]$sum_abund) %>%
-        dplyr::mutate(sum_sat_abund = clus.data[.$sata_clus,]$sum_abund) %>%
-        dplyr::mutate(is_downstream = source_pos > sata_pos) %>%
+        dplyr::mutate(
+          source_pos = clus.data[source_clus,]$clus_pos_mean,
+          sata_pos = clus.data[sata_clus,]$clus_pos_mean,
+          min_src_abund = clus.data[.$source_clus,]$min_abund,
+          min_sat_abund = clus.data[.$sata_clus,]$min_abund,
+          sum_src_abund = clus.data[.$source_clus,]$sum_abund,
+          sum_sat_abund = clus.data[.$sata_clus,]$sum_abund,
+          is_downstream = source_pos > sata_pos) %>%
         dplyr::filter(
-          as.integer(min_src_abund) >= as.integer(min_sat_abund)) %>%
-        dplyr::filter(sum_src_abund > sum_sat_abund) %>%
-        dplyr::filter(abs(source_clus - sata_clus) == 1)
+          as.integer(min_src_abund) >= as.integer(min_sat_abund),
+          sum_src_abund > sum_sat_abund,
+          abs(source_clus - sata_clus) == 1)
     }else{
       stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
     }
@@ -122,34 +124,29 @@ connect_satalite_vertices <- function(red.sites, graph, gap, bias){
 
       if(bias == "upstream"){
         sata.hits <- sata.hits %>%
-          dplyr::mutate(source_node = ifelse(
-            sata.hits$is_upstream,
-            sapply(clus.list[sata.hits$source_clus], dplyr::last),
-            sapply(clus.list[sata.hits$source_clus], dplyr::first)
-          )) %>%
-          dplyr::mutate(sata_node = ifelse(
-            is_upstream,
-            sapply(clus.list[sata_clus], dplyr::first),
-            sapply(clus.list[sata_clus], dplyr::last)
-          ))
+          dplyr::mutate(
+            source_node = ifelse(
+              sata.hits$is_upstream,
+              sapply(clus.list[sata.hits$source_clus], dplyr::last),
+              sapply(clus.list[sata.hits$source_clus], dplyr::first)),
+            sata_node = ifelse(
+              is_upstream,
+              sapply(clus.list[sata_clus], dplyr::first),
+              sapply(clus.list[sata_clus], dplyr::last)))
       }else if(bias == "downstream"){
         sata.hits <- sata.hits %>%
-          dplyr::mutate(source_node = ifelse(
-            sata.hits$is_downstream,
-            sapply(clus.list[sata.hits$source_clus], dplyr::first),
-            sapply(clus.list[sata.hits$source_clus], dplyr::last)
-          )) %>%
-          dplyr::mutate(sata_node = ifelse(
-            is_downstream,
-            sapply(clus.list[sata_clus], dplyr::last),
-            sapply(clus.list[sata_clus], dplyr::first)
-          ))
+          dplyr::mutate(
+            source_node = ifelse(
+              sata.hits$is_downstream,
+              sapply(clus.list[sata.hits$source_clus], dplyr::first),
+              sapply(clus.list[sata.hits$source_clus], dplyr::last)),
+            sata_node = ifelse(
+              is_downstream,
+              sapply(clus.list[sata_clus], dplyr::last),
+              sapply(clus.list[sata_clus], dplyr::first)))
       }
 
-      sata.edges <- unlist(with(
-        sata.hits,
-        mapply(c, source_node, sata_node, SIMPLIFY = FALSE)
-      ))
+      sata.edges <- with(sata.hits, vzip(source_node, sata_node))
     }else{
       sata.edges <- c()
     }

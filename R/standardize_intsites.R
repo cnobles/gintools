@@ -29,7 +29,7 @@
 standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 5L){
 
   # Retain original order
-  sites$ori.order <- 1:length(sites)
+  sites$ori.order <- seq_along(sites)
 
   # Identify counts or abundance info, assume 1 if not given, but check for
   # a column named counts first and use, otherwise error out if column is not
@@ -57,31 +57,32 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
     GenomicRanges::flank(sites, -1, start = TRUE),
     min.gapwidth = 0L,
     with.revmap = TRUE)
-  red.sites$siteID <- seq(1:length(red.sites))
-  revmap <- IRanges::as.list(red.sites$revmap)
-  red.sites$abundance <- sapply(revmap, function(x){
-    sum(sites[x]$func.counts)
-  })
+  red.sites$siteID <- seq_along(red.sites)
+  df.counts <- GenomicRanges::mcols(sites) %>%
+    as.data.frame(row.names = NULL)
+  df.counts <- df.counts[unlist(red.sites$revmap),] %>%
+    dplyr::mutate(grp = as.numeric(S4Vectors::Rle(
+      values = seq_along(red.sites),
+      lengths = S4Vectors::lengths(red.sites$revmap)))) %>%
+    dplyr::group_by(grp) %>%
+    dplyr::summarise(abund = sum(func.counts)) %>%
+    dplyr::ungroup()
+
+  red.sites$abund <- df.counts$abund
 
   red.hits <- GenomicRanges::as.data.frame(
     GenomicRanges::findOverlaps(red.sites, maxgap = min.gap, drop.self = TRUE))
 
   red.hits <- red.hits %>%
-    dplyr::mutate(q_pos = GenomicRanges::start(red.sites[queryHits])) %>%
-    dplyr::mutate(s_pos = GenomicRanges::start(red.sites[subjectHits])) %>%
-    dplyr::mutate(q_abund = red.sites[queryHits]$abundance) %>%
-    dplyr::mutate(s_abund = red.sites[subjectHits]$abundance) %>%
-    dplyr::mutate(strand = as.vector(
-      GenomicRanges::strand(red.sites[queryHits]))) %>%
-    dplyr::mutate(is.upstream = ifelse(
-      strand == "+",
-      q_pos < s_pos,
-      q_pos > s_pos)) %>%
-    dplyr::mutate(keep = q_abund > s_abund) %>%
-    dplyr::mutate(keep = ifelse(
-      q_abund == s_abund,
-      is.upstream,
-      keep)) %>%
+    dplyr::mutate(
+      q_pos = GenomicRanges::start(red.sites[queryHits]),
+      s_pos = GenomicRanges::start(red.sites[subjectHits]),
+      q_abund = red.sites[queryHits]$abund,
+      s_abund = red.sites[subjectHits]$abund,
+      strand = as.vector(GenomicRanges::strand(red.sites[queryHits])),
+      is.upstream = ifelse(strand == "+", q_pos < s_pos, q_pos > s_pos),
+      keep = q_abund > s_abund,
+      keep = ifelse(q_abund == s_abund, is.upstream, keep)) %>%
     dplyr::filter(keep)
 
   # Construct initial graph, the graph will be modified during other parts of
@@ -89,8 +90,7 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   # within those clusters as it's a directed graph. Sources are identified and
   # used to identify the original position given a distribution.
   g <- igraph::make_empty_graph(n = length(red.sites), directed = TRUE) %>%
-    igraph::add_edges(unlist(mapply(
-      c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
+    igraph::add_edges(vzip(red.hits$queryHits, red.hits$subjectHits))
 
   red.sites$clusID <- igraph::clusters(g)$membership
 
@@ -112,7 +112,7 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
 
   message(paste0("Connecting satalite positions up to ", sata.gap, " nt apart."))
 
-  lapply(2:sata.gap, function(gap){
+  null <- lapply(2:sata.gap, function(gap){
     g <<- connect_satalite_vertices(red.sites, g, gap, "upstream")
     red.sites$clusID <<- igraph::clusters(g)$membership
   })
@@ -158,7 +158,7 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   src.nodes <- sources(g)
 
   clus.data <- data.frame(
-    "clusID" = 1:igraph::clusters(g)$no,
+    "clusID" = seq_along(igraph::clusters(g)$csize),
     "chr" = GenomicRanges::seqnames(red.sites[src.nodes]),
     "strand" = GenomicRanges::strand(red.sites[src.nodes]),
     "position" = GenomicRanges::start(red.sites[src.nodes]),
@@ -169,7 +169,7 @@ standardize_intsites <- function(sites, counts = NULL, min.gap = 1L, sata.gap = 
   sites <- sites[unlist(IRanges::as.list(red.sites$revmap))]
   sites$clusID <- as.numeric(S4Vectors::Rle(
     igraph::clusters(g)$membership,
-    sapply(red.sites$revmap, length)))
+    S4Vectors::lengths(red.sites$revmap)))
   sites$called.pos <- ifelse(
     GenomicRanges::strand(sites) == "+",
     GenomicRanges::start(sites),

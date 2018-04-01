@@ -83,46 +83,34 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
     # reads).
     if(bias == "upstream"){
       near.src.df <- data.frame(
-        node.i = src.nodes[queryHits(near.sources)],
-        node.j = src.nodes[subjectHits(near.sources)]
-      ) %>%
-        dplyr::mutate(abund.i = red.sites[node.i]$abundance) %>%
-        dplyr::mutate(abund.j = red.sites[node.j]$abundance) %>%
-        dplyr::mutate(pos.i = GenomicRanges::start(red.sites[node.i])) %>%
-        dplyr::mutate(pos.j = GenomicRanges::start(red.sites[node.j])) %>%
-        dplyr::mutate(strand = as.character(
-          GenomicRanges::strand(red.sites[node.i]))) %>%
-        dplyr::mutate(is.upstream = ifelse(
-          strand == "+",
-          pos.i < pos.j,
-          pos.i > pos.j))
+          node.i = src.nodes[queryHits(near.sources)],
+          node.j = src.nodes[subjectHits(near.sources)]) %>%
+        dplyr::mutate(
+          abund.i = red.sites[node.i]$abund,
+          abund.j = red.sites[node.j]$abund,
+          pos.i = GenomicRanges::start(red.sites[node.i]),
+          pos.j = GenomicRanges::start(red.sites[node.j]),
+          strand = as.character(GenomicRanges::strand(red.sites[node.i])),
+          is.upstream = ifelse(strand == "+", pos.i < pos.j, pos.i > pos.j))
     }else if(bias == "downstream"){
       near.src.df <- data.frame(
-        node.i = src.nodes[queryHits(near.sources)],
-        node.j = src.nodes[subjectHits(near.sources)]
-      ) %>%
-        dplyr::mutate(abund.i = red.sites[node.i]$abundance) %>%
-        dplyr::mutate(abund.j = red.sites[node.j]$abundance) %>%
-        dplyr::mutate(pos.i = GenomicRanges::start(red.sites[node.i])) %>%
-        dplyr::mutate(pos.j = GenomicRanges::start(red.sites[node.j])) %>%
-        dplyr::mutate(strand = as.character(
-          GenomicRanges::strand(red.sites[node.i]))) %>%
-        dplyr::mutate(is.downstream = ifelse(
-          strand == "+",
-          pos.i > pos.j,
-          pos.i < pos.j))
+          node.i = src.nodes[queryHits(near.sources)],
+          node.j = src.nodes[subjectHits(near.sources)]) %>%
+        dplyr::mutate(
+          abund.i = red.sites[node.i]$abund,
+          abund.j = red.sites[node.j]$abund,
+          pos.i = GenomicRanges::start(red.sites[node.i]),
+          pos.j = GenomicRanges::start(red.sites[node.j]),
+          strand = as.character(GenomicRanges::strand(red.sites[node.i])),
+          is.downstream = ifelse(strand == "+", pos.i > pos.j, pos.i < pos.j))
     }else{
       stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
     }
 
     redundant_graph <- igraph::make_graph(
-      edges = unlist(with(
-        near.src.df,
-        mapply(
-          c,
-          1:nrow(near.src.df),
-          match(paste(node.i, node.j), paste(node.j, node.i))
-    ))))
+      edges = with(near.src.df, vzip(
+        1:nrow(near.src.df),
+        match(paste(node.i, node.j), paste(node.j, node.i)))))
     redundant_groups <- igraph::clusters(redundant_graph)$membership
 
     if(bias == "upstream"){
@@ -130,29 +118,22 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
           near.src.df, redundant_grp = redundant_groups) %>%
         dplyr::filter(abund.i >= abund.j) %>%
         dplyr::group_by(redundant_grp) %>%
-        dplyr::mutate(group_size = n()) %>%
-        dplyr::mutate(keep = ifelse(
-          group_size == 1,
-          TRUE,
-          is.upstream)) %>%
+        dplyr::mutate(
+          group_size = n(),
+          keep = ifelse(group_size == 1, TRUE, is.upstream)) %>%
         dplyr::filter(keep)
     }else if(bias == "downstream"){
       near.src.df <- dplyr::mutate(
           near.src.df, redundant_grp = redundant_groups) %>%
         dplyr::filter(abund.i >= abund.j) %>%
         dplyr::group_by(redundant_grp) %>%
-        dplyr::mutate(group_size = n()) %>%
-        dplyr::mutate(keep = ifelse(
-          group_size == 1,
-          TRUE,
-          is.downstream)) %>%
+        dplyr::mutate(
+          group_size = n(),
+          keep = ifelse(group_size == 1, TRUE, is.downstream)) %>%
         dplyr::filter(keep)
     }
 
-    edges.to.connect.near.srcs <- unlist(with(
-      near.src.df,
-      mapply(c, node.i, node.j, SIMPLIFY = FALSE)
-    ))
+    edges.to.connect.near.srcs <- with(near.src.df, vzip(node.i, node.j))
   }else{
     edges.to.connect.near.srcs <- c()
   }
