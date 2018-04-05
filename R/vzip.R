@@ -22,6 +22,7 @@
 #' vzip(A, B)
 #'
 #' @author Christopher Nobles, Ph.D.
+#' @export
 #'
 
 vzip <- function(...){

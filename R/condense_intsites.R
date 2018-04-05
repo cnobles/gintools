@@ -12,12 +12,12 @@
 #' separated and analyzed independently by using the grouping option.
 #'
 #' @usage
-#' condense_intsites(sites_to_condense)
+#' condense_intsites(sites.to.condense)
 #'
-#' condense_intsites(sites_to_condense, grouping = NULL,
+#' condense_intsites(sites.to.condense, grouping = NULL,
 #' return.abundance = FALSE, method = "fragLen", replicates = "replicates")
 #'
-#' @param sites_to_condense a GRanges object where each row represents a genomic
+#' @param sites.to.condense a GRanges object where each row represents a genomic
 #' range of reference genome DNA.
 #'
 #' @param grouping metadata column name (input as character) which designates
@@ -35,6 +35,8 @@
 #' information, relevant for abundance calculations and irrelent after using the
 #' this function.
 #'
+#' @param quiet logical indicating if output message should be displayed.
+#'
 #' @examples
 #' gr <- gintools:::generate_test_granges()
 #' std.gr <- standardize_intsites(gr)
@@ -45,44 +47,46 @@
 #' @author Christopher Nobles, Ph.D.
 #' @export
 
-condense_intsites <- function(sites_to_condense, grouping = NULL,
+condense_intsites <- function(sites.to.condense, grouping = NULL,
                               return.abundance = FALSE, method = "fragLen",
-                              replicates = "replicates"){
-  mcols <- GenomicRanges::mcols(sites_to_condense)
+                              replicates = "replicates", quiet = TRUE){
+  mcols <- GenomicRanges::mcols(sites.to.condense)
 
   grp <- which(grouping == names(mcols))
   if(length(grp) != 0){
     group <- as.character(mcols[,grp])
   }else{
-    group <- rep("group1", length(sites_to_condense))
+    group <- rep("group1", length(sites.to.condense))
   }
 
-  sites_to_condense$posID <- generate_posid(sites_to_condense)
-  sites_to_condense$groupID <- paste0(group, "^", sites_to_condense$posID)
+  sites.to.condense$posid <- generate_posid(sites.to.condense)
+  sites.to.condense$group.id <- paste0(group, "^", sites.to.condense$posid)
 
-  groupIDs <- S4Vectors::unique(sites_to_condense$groupID)
-  first.hits <- match(groupIDs, sites_to_condense$groupID)
+  group_ids <- S4Vectors::unique(sites.to.condense$group.id)
+  first_hits <- match(group_ids, sites.to.condense$group.id)
 
-  condensed.gr <- GenomicRanges::flank(sites_to_condense, -1, start = TRUE)
-  condensed.gr <- condensed.gr[first.hits]
+  condensed_gr <- GenomicRanges::flank(sites.to.condense, -1, start = TRUE)
+  condensed_gr <- condensed_gr[first_hits]
 
   if(return.abundance){
-    abund.dfr <- determine_abundance(
-      sites_to_condense, grouping = grouping,
+    abund_df <- determine_abundance(
+      sites.to.condense, grouping = grouping,
       replicates = replicates, method = method)
-    abund.dfr$groupID <- paste0(abund.dfr$group, "^", abund.dfr$posID)
-    mcols <- GenomicRanges::mcols(condensed.gr)
-    all.cols <- merge(mcols, abund.dfr, by = "groupID")
-    order <- match(condensed.gr$groupID, all.cols$groupID)
-    all.cols <- all.cols[order,]
-    GenomicRanges::mcols(condensed.gr) <- all.cols
-    condensed.gr$posID.x <- NULL
-    condensed.gr$posID.y <- NULL
-    condensed.gr$posID <- generate_posid(condensed.gr)
+    abund_df$group.id <- paste0(abund_df$group, "^", abund_df$posid)
+    mcols <- GenomicRanges::mcols(condensed_gr)
+    all_cols <- merge(mcols, abund_df, by = "group.id")
+    order <- match(condensed_gr$group.id, all_cols$group.id)
+    all_cols <- all_cols[order,]
+    GenomicRanges::mcols(condensed_gr) <- all_cols
+    condensed_gr$posid.x <- NULL
+    condensed_gr$posid.y <- NULL
+    condensed_gr$posid <- generate_posid(condensed_gr)
   }
-  condensed.gr$groupID <- NULL
-  condensed.gr$group <- NULL
-  names(condensed.gr) <- NULL
-  message("Check to make sure all metadata columns are still relavent.")
-  condensed.gr
+  condensed_gr$group.id <- NULL
+  condensed_gr$group <- NULL
+  names(condensed_gr) <- NULL
+  if(!quiet){
+    message("Check to make sure all metadata columns are still relavent.")
+  }
+  condensed_gr
 }

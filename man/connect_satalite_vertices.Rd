@@ -10,7 +10,7 @@ connect_satalite_vertices(red.sites, graph, gap, bais)
 \arguments{
 \item{red.sites}{GRanges object which has been reduced to single nt positions
 and contains the revmap from the original GRanges object. The object must
-also contain a column for cluster membership (clusID) and a column for
+also contain a column for cluster membership (clus.id) and a column for
 abundance (fragLengths).}
 
 \item{graph}{a directed graph built from the red.sites object. Each node
@@ -65,7 +65,7 @@ red.hits <- red.hits \%>\%
 g <- make_empty_graph(n = length(red.sites), directed = TRUE) \%>\%
   add_edges(unlist(mapply(
     c, red.hits$queryHits, red.hits$subjectHits, SIMPLIFY = FALSE)))
-red.sites$clusID <- clusters(g)$membership
+red.sites$clus.id <- clusters(g)$membership
 
 connect_satalite_vertices(red.sites, g, gap = 2L, "upstream")
 

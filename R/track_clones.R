@@ -28,6 +28,9 @@
 #' origin of the integration site. Use if there is no sample information in the
 #' metadata columns of the input GRanges objects.
 #'
+#' @param quiet logical for whether or not to message to the terminal processing
+#' findings. True by default.
+#'
 #' @examples
 #' gr <- GRanges(
 #'   seqnames = rep("chr1", 100),
@@ -46,34 +49,44 @@
 #' @author Christopher Nobles, Ph.D.
 #' @export
 
-track_clones <- function(sites.list, gap = 5L, track.origin = TRUE){
+track_clones <- function(sites.list, gap = 5L, track.origin = TRUE,
+                         quiet = TRUE){
   if(class(sites.list) == "list"){
-    grl.sites <- GenomicRanges::GRangesList(sites.list) }
-  grl.sites <- sites.list
+    grl_sites <- GenomicRanges::GRangesList(sites.list)
+  }else if(class(sites.list) == "GRangesList"){
+    grl_sites <- sites.list
+  }else{
+    stop(
+      "Input sites.list must be either a ",
+      "list of GRanges or GRangesList object.")
+  }
 
+  # Track origin of matched site
   if(track.origin){
-    if(is.null(names(grl.sites))) names(grl.sites) <- 1:length(grl.sites)
-    grl.sites <- GenomicRanges::GRangesList(lapply(
-      1:length(grl.sites), function(i){
+    if(is.null(names(grl_sites))) names(grl_sites) <- seq_along(grl_sites)
+    grl_sites <- GenomicRanges::GRangesList(lapply(
+      seq_along(grl_sites), function(i){
         sites <- sites.list[[i]]
-        sites$origin <- rep(names(grl.sites[i]), length(sites))
+        sites$origin <- rep(names(grl_sites[i]), length(sites))
         sites
     }))
   }
 
-  ovlp.grps <- GenomicRanges::findOverlaps(
-    GenomicRanges::flank(grl.sites, width = -1, start = TRUE),
+  # Identify shared sites across listed objects
+  ovlp_grps <- GenomicRanges::findOverlaps(
+    GenomicRanges::flank(grl_sites, width = -1, start = TRUE),
     maxgap = gap,
     drop.self = TRUE,
     drop.redundant = TRUE
   )
 
-  if(length(ovlp.grps) > 0){
-    ovlp.sites <- unlist(GenomicRanges::GRangesList(lapply(
-      1:length(ovlp.grps),
+  # Identify which specific sites are found in multiple objects of list
+  if(length(ovlp_grps) > 0){
+    ovlp_sites <- unlist(GenomicRanges::GRangesList(lapply(
+      seq_along(ovlp_grps),
       function(i){
-        query <- grl.sites[[S4Vectors::queryHits(ovlp.grps[i])]]
-        subject <- grl.sites[[S4Vectors::subjectHits(ovlp.grps[i])]]
+        query <- grl_sites[[S4Vectors::queryHits(ovlp_grps[i])]]
+        subject <- grl_sites[[S4Vectors::subjectHits(ovlp_grps[i])]]
         hits <- GenomicRanges::findOverlaps(
           GenomicRanges::flank(query, -1, start = TRUE),
           GenomicRanges::flank(subject, -1, start = TRUE),
@@ -91,21 +104,13 @@ track_clones <- function(sites.list, gap = 5L, track.origin = TRUE){
     message("No overlaping sites found between groups.")
   }
 
-  if(length(ovlp.grps) > 0){
-    ovlp.sites$posid <- generate_posid(ovlp.sites)
-    sites.dfr <- dplyr::distinct(
-      GenomicRanges::as.data.frame(ovlp.sites, row.names = NULL))
-    ranges <- IRanges::IRanges(start = sites.dfr$start, end = sites.dfr$end)
-    sites.gr <- GenomicRanges::GRanges(
-      seqnames = sites.dfr$seqnames,
-      ranges = ranges,
-      strand = sites.dfr$strand
-    )
-    mcols(sites.gr) <- sites.dfr[,c(6:length(sites.dfr))]
-    ovlp.list <- GenomicRanges::split(sites.gr, sites.gr$posid)
+  # Output grl of sites tracked across samples
+  if(length(ovlp_sites) > 0){
+    sites <- unique_granges(ovlp_sites)
+    ovlp_list <- GenomicRanges::split(sites, generate_posid(sites))
   }else{
-    ovlp.list <- GenomicRanges::GRangesList()
+    ovlp_list <- GenomicRanges::GRangesList()
   }
-  message(paste("Number of overlaping sites:", length(ovlp.list)))
-  ovlp.list
+  if(!quiet) message(paste("Number of overlaping sites:", length(ovlp_list)))
+  ovlp_list
 }

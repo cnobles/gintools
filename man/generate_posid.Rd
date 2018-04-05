@@ -6,7 +6,7 @@
 \usage{
 generate_posid(sites = NULL)
 
-generate_posid(seqnames = NULL, strand = NULL, start = NULL, end = NULL)
+generate_posid(seqnames = NULL, strand = NULL, start = NULL, end = NULL, delim = "")
 }
 \arguments{
 \item{sites}{a GRanges object where each row represents one integrated
@@ -23,6 +23,8 @@ considered the start for "+" integrated elements.}
 
 \item{end}{the greater numerical position of the integrated element,
 considered the end for "+" integrated elements.}
+
+\item{delim}{a single character to delimit the data within the string.}
 }
 \description{
 Given a set of genomic integration positions, the

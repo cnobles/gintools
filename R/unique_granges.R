@@ -69,17 +69,17 @@ unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL){
   cols <- names(df)
 
   if(sum.counts){
-    counts.pos <- match(counts.col, cols)}
+    counts_pos <- match(counts.col, cols)}
 
   # Sum counts if needed
   if(!sum.counts){
     df <- dplyr::distinct(df)
   }else{
-    df$counts <- df[,cols[counts.pos]]
-    groups <- lapply(cols[-counts.pos], as.symbol)
+    df$counts <- df[,cols[counts_pos]]
+    groups <- lapply(cols[-counts_pos], as.symbol)
     df <- dplyr::group_by_(df, .dots = groups) %>%
       dplyr::summarise(counts = sum(counts))
-    names(df) <- c(cols[-counts.pos], cols[counts.pos])
+    names(df) <- c(cols[-counts_pos], cols[counts_pos])
   }
 
   # Rebuild GRanges object
@@ -90,6 +90,6 @@ unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL){
     seqinfo = GenomicRanges::seqinfo(sites)
   )
 
-  mcols(gr) <- df[,6:length(df)]
+  GenomicRanges::mcols(gr) <- dplyr::select(df, 6:length(df))
   gr
 }

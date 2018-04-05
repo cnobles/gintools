@@ -11,7 +11,7 @@
 #' @usage
 #' generate_posid(sites = NULL)
 #'
-#' generate_posid(seqnames = NULL, strand = NULL, start = NULL, end = NULL)
+#' generate_posid(seqnames = NULL, strand = NULL, start = NULL, end = NULL, delim = "")
 #'
 #' @param sites a GRanges object where each row represents one integrated
 #' element.
@@ -23,6 +23,7 @@
 #' considered the start for "+" integrated elements.
 #' @param end the greater numerical position of the integrated element,
 #' considered the end for "+" integrated elements.
+#' @param delim a single character to delimit the data within the string.
 #'
 #' @examples
 #' chr <- c("chr1", "chr3", "chrX")
@@ -41,33 +42,32 @@
 #' @export
 
 generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL,
-                           end=NULL){
-  if(!is.null(sites) & length(sites) != 0){
+                           end=NULL, delim = ""){
+  if(!is.null(sites)){
     if(class(sites) == "GRanges"){
       chr <- as.character(GenomicRanges::seqnames(sites))
       strand <- as.vector(GenomicRanges::strand(sites))
       pos <- ifelse(
-        strand == "+", GenomicRanges::start(sites), GenomicRanges::end(sites))
-      posID <- paste0(chr, strand, pos)
+        strand != "-", GenomicRanges::start(sites), GenomicRanges::end(sites))
     }else{
-      message("Sites provided not a GRanges object,
-              please use alternative inputs.")
-      stop()
+      stop("Sites provided not a GRanges object, use alternative inputs.")
     }
-  }else if(!is.null(sites) & length(sites) == 0){
-    posID <- character()
   }else if(is.null(sites)){
     if(!is.null(seqnames) & !is.null(strand) & !is.null(start) & !is.null(end)){
+      if(length(unique(sapply(
+        list(seqnames, strand, start, end), length))) != 1){
+          stop("Input seqnames, strand, start, and end are not equal length.")
+      }
       chr <- as.character(seqnames)
       strand <- as.vector(strand)
       start <- as.integer(start)
       end <- as.integer(end)
-      sites.df <- data.frame(chr, strand, start, end)
-      sites.df$pos <- ifelse(strand == "+", sites.df$start, sites.df$end)
-      posID <- paste0(sites.df$chr, sites.df$strand, sites.df$pos)
+      pos <- ifelse(strand != "-", start, end)
     }else{
-      message("Please supply seqnames, strand, start, and end info.")
-      stop()
-    }}
-  return(posID)
+      chr <- strand <- pos <- delim <- c()
+    }
+  }
+
+  paste0(chr, delim, strand, delim, pos)
 }
+

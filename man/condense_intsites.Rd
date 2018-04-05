@@ -4,13 +4,13 @@
 \alias{condense_intsites}
 \title{Condense integration site GRanges to distinct genomic positions.}
 \usage{
-condense_intsites(sites_to_condense)
+condense_intsites(sites.to.condense)
 
-condense_intsites(sites_to_condense, grouping = NULL,
+condense_intsites(sites.to.condense, grouping = NULL,
 return.abundance = FALSE, method = "fragLen", replicates = "replicates")
 }
 \arguments{
-\item{sites_to_condense}{a GRanges object where each row represents a genomic
+\item{sites.to.condense}{a GRanges object where each row represents a genomic
 range of reference genome DNA.}
 
 \item{grouping}{metadata column name (input as character) which designates
@@ -27,6 +27,8 @@ utilizes the sonicLength package.}
 \item{replicates}{character name of the column carrying the replicate
 information, relevant for abundance calculations and irrelent after using the
 this function.}
+
+\item{quiet}{logical indicating if output message should be displayed.}
 }
 \description{
 Given a GRanges object representing the genomic ranges of

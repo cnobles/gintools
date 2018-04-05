@@ -68,23 +68,23 @@
 #'
 
 connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
-  src.nodes <- sources(graph)
-  near.sources <- GenomicRanges::findOverlaps(
-    red.sites[src.nodes],
+  src_nodes <- sources(graph)
+  near_sources <- GenomicRanges::findOverlaps(
+    red.sites[src_nodes],
     maxgap = gap,
     drop.self = TRUE
   )
 
-  if(length(near.sources) > 0){
+  if(length(near_sources) > 0){
     # Identify sources of clusters within the largets satalite gap distance
     # and identify the directionality of the edge to create based first on
     # abundance (source will likely have greater abundance) and then by
     # upstream bias (more likely the origin site is upstream of drifting mapped
     # reads).
     if(bias == "upstream"){
-      near.src.df <- data.frame(
-          node.i = src.nodes[queryHits(near.sources)],
-          node.j = src.nodes[subjectHits(near.sources)]) %>%
+      near_src_df <- data.frame(
+        node.i = src_nodes[S4Vectors::queryHits(near_sources)],
+          node.j = src_nodes[S4Vectors::subjectHits(near_sources)]) %>%
         dplyr::mutate(
           abund.i = red.sites[node.i]$abund,
           abund.j = red.sites[node.j]$abund,
@@ -93,9 +93,9 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
           strand = as.character(GenomicRanges::strand(red.sites[node.i])),
           is.upstream = ifelse(strand == "+", pos.i < pos.j, pos.i > pos.j))
     }else if(bias == "downstream"){
-      near.src.df <- data.frame(
-          node.i = src.nodes[queryHits(near.sources)],
-          node.j = src.nodes[subjectHits(near.sources)]) %>%
+      near_src_df <- data.frame(
+          node.i = src_nodes[S4Vectors::queryHits(near_sources)],
+          node.j = src_nodes[S4Vectors::subjectHits(near_sources)]) %>%
         dplyr::mutate(
           abund.i = red.sites[node.i]$abund,
           abund.j = red.sites[node.j]$abund,
@@ -108,35 +108,35 @@ connect_adjacent_clusters <- function(red.sites, graph, gap, bias){
     }
 
     redundant_graph <- igraph::make_graph(
-      edges = with(near.src.df, vzip(
-        1:nrow(near.src.df),
+      edges = with(near_src_df, vzip(
+        1:nrow(near_src_df),
         match(paste(node.i, node.j), paste(node.j, node.i)))))
     redundant_groups <- igraph::clusters(redundant_graph)$membership
 
     if(bias == "upstream"){
-      near.src.df <- dplyr::mutate(
-          near.src.df, redundant_grp = redundant_groups) %>%
+      near_src_df <- dplyr::mutate(
+          near_src_df, redundant.grp = redundant_groups) %>%
         dplyr::filter(abund.i >= abund.j) %>%
-        dplyr::group_by(redundant_grp) %>%
+        dplyr::group_by(redundant.grp) %>%
         dplyr::mutate(
           group_size = n(),
           keep = ifelse(group_size == 1, TRUE, is.upstream)) %>%
         dplyr::filter(keep)
     }else if(bias == "downstream"){
-      near.src.df <- dplyr::mutate(
-          near.src.df, redundant_grp = redundant_groups) %>%
+      near_src_df <- dplyr::mutate(
+          near_src_df, redundant.grp = redundant_groups) %>%
         dplyr::filter(abund.i >= abund.j) %>%
-        dplyr::group_by(redundant_grp) %>%
+        dplyr::group_by(redundant.grp) %>%
         dplyr::mutate(
           group_size = n(),
           keep = ifelse(group_size == 1, TRUE, is.downstream)) %>%
         dplyr::filter(keep)
     }
 
-    edges.to.connect.near.srcs <- with(near.src.df, vzip(node.i, node.j))
+    edges_to_connect_near_srcs <- with(near_src_df, vzip(node.i, node.j))
   }else{
-    edges.to.connect.near.srcs <- c()
+    edges_to_connect_near_srcs <- c()
   }
 
-  igraph::add.edges(graph, edges.to.connect.near.srcs)
+  igraph::add.edges(graph, edges_to_connect_near_srcs)
 }

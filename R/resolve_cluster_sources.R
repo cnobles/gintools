@@ -69,71 +69,71 @@
 #' @importFrom magrittr %>%
 
 resolve_cluster_sources <- function(red.sites, graph, bias){
-  src.nodes <- sources(graph)
-  sources.p.clus <- IRanges::IntegerList(split(
-    src.nodes, igraph::clusters(graph)$membership[src.nodes]))
-  clus.w.multi.sources <- sources.p.clus[S4Vectors::lengths(sources.p.clus) > 1]
+  src_nodes <- sources(graph)
+  sources_p_clus <- IRanges::IntegerList(split(
+    src_nodes, igraph::clusters(graph)$membership[src_nodes]))
+  clus_w_multi_sources <- sources_p_clus[S4Vectors::lengths(sources_p_clus) > 1]
 
-  if(length(clus.w.multi.sources) > 0){
+  if(length(clus_w_multi_sources) > 0){
     if(bias == "upstream"){
-      resolve.df <- data.frame(
-          node = unlist(clus.w.multi.sources),
+      resolve_df <- data.frame(
+          node = unlist(clus_w_multi_sources),
           clus = as.numeric(S4Vectors::Rle(
-            values = seq_along(clus.w.multi.sources),
-            lengths = S4Vectors::lengths(clus.w.multi.sources)))) %>%
+            values = seq_along(clus_w_multi_sources),
+            lengths = S4Vectors::lengths(clus_w_multi_sources)))) %>%
         dplyr::mutate(abund = red.sites[node]$abund) %>%
         dplyr::group_by(clus) %>%
         dplyr::mutate(
-          top_abund = abund == max(abund),
+          top.abund = abund == max(abund),
           strand = as.character(GenomicRanges::strand(red.sites[node])),
           pos = GenomicRanges::start(red.sites[node])) %>%
-        dplyr::group_by(clus, top_abund) %>%
+        dplyr::group_by(clus, top.abund) %>%
         dplyr::mutate(
-          grp_size = n(),
+          grp.size = n(),
           is.upstream = ifelse(strand == "+", pos == min(pos), pos == max(pos)),
           src = ifelse(
-            top_abund == TRUE & grp_size > 1, is.upstream, top_abund)) %>%
+            top.abund == TRUE & grp.size > 1, is.upstream, top.abund)) %>%
         dplyr::ungroup() %>%
         as.data.frame()
     }else if(bias == "downstream"){
-      resolve.df <- data.frame(
-        node = unlist(clus.w.multi.sources),
+      resolve_df <- data.frame(
+        node = unlist(clus_w_multi_sources),
         clus = as.numeric(S4Vectors::Rle(
-          values = seq_along(clus.w.multi.sources),
-          lengths = S4Vectors::lengths(clus.w.multi.sources)))) %>%
+          values = seq_along(clus_w_multi_sources),
+          lengths = S4Vectors::lengths(clus_w_multi_sources)))) %>%
         dplyr::mutate(
           abund = red.sites[node]$abund) %>%
         dplyr::group_by(clus) %>%
         dplyr::mutate(
-          top_abund = abund == max(abund),
+          top.abund = abund == max(abund),
           strand = as.character(GenomicRanges::strand(red.sites[node])),
           pos = GenomicRanges::start(red.sites[node])) %>%
-        dplyr::group_by(clus, top_abund) %>%
+        dplyr::group_by(clus, top.abund) %>%
         dplyr::mutate(
-          grp_size = n(),
+          grp.size = n(),
           is.downstream = ifelse(
             strand == "+", pos == max(pos), pos == min(pos)),
           src = ifelse(
-            top_abund == TRUE & grp_size > 1, is.downstream, top_abund)) %>%
+            top.abund == TRUE & grp.size > 1, is.downstream, top.abund)) %>%
         dplyr::ungroup() %>%
         as.data.frame()
     }else{
       stop("No bias specified. Please choose either 'upstream' or 'downstream'.")
     }
 
-    src.nodes <- resolve.df[resolve.df$src == TRUE,]$node
-    snk.nodes <- lapply(seq_along(clus.w.multi.sources), function(i){
-      resolve.df[resolve.df$clus == i & resolve.df$src == FALSE,]$node
+    src_nodes <- resolve_df[resolve_df$src == TRUE,]$node
+    snk_nodes <- lapply(seq_along(clus_w_multi_sources), function(i){
+      resolve_df[resolve_df$clus == i & resolve_df$src == FALSE,]$node
     })
 
     # Accomidates multiple sinks for singular sources in a cluster.
-    resolve.edges <- do.call(c, lapply(1:length(src.nodes), function(i){
-      src <- src.nodes[i]
-      snk <- snk.nodes[[i]]
+    resolve_edges <- do.call(c, lapply(seq_along(src_nodes), function(i){
+      src <- src_nodes[i]
+      snk <- snk_nodes[[i]]
       vzip(rep(src, length(snk)), snk) }))
   }else{
-    resolve.edges <- c()
+    resolve_edges <- c()
   }
 
-  igraph::add.edges(graph, resolve.edges)
+  igraph::add.edges(graph, resolve_edges)
 }

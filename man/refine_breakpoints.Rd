@@ -4,20 +4,27 @@
 \alias{refine_breakpoints}
 \title{Refine or resolve sonic break points within a dataset}
 \usage{
-refine_breakpoints(sites)
+refine_breakpoints(input.sites)
 
-refine_breakpoints(sites, count = "counts", min.gap = 1L, sata.gap = 3L)
+refine_breakpoints(input.sites, count = "counts", min.gap = 1L, sata.gap = 3L)
 }
 \arguments{
-\item{sites}{GRanges object. Integration site ranges to adjust.}
+\item{input.sites}{GRanges object. Ranges of alignments or sites to adjust.}
 
-\item{counts}{character string. Name of column holding range count
+\item{counts.col}{character string. Name of column holding range count
 information (ie. read counts). If not supplied, assume count of 1 for each
 row in sites.}
 
 \item{min.gap}{integer minimum gap to consider combining break points.}
 
 \item{sata.gap}{integer maximum distance to consider combining break points.}
+
+\item{details}{logical If TRUE, data columns will be appended to the metadata
+of the GRanges object noting the original and adjusted position for the site.
+FALSE by default.}
+
+\item{quiet}{logical during processing, should messages be suppressed which
+report findings? TRUE by default.}
 }
 \description{
 Given a GRanges object ....

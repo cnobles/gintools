@@ -18,6 +18,9 @@ to group integration sites.}
 \item{track.origin}{logical for whether to append information regarding the
 origin of the integration site. Use if there is no sample information in the
 metadata columns of the input GRanges objects.}
+
+\item{quiet}{logical for whether or not to message to the terminal processing
+findings. True by default.}
 }
 \description{
 Given a GRangesList of integration site sets, this function will
