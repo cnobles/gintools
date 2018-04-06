@@ -1,23 +1,65 @@
 # gintools
-Tools used for analysis and interpretation of genomic DNA integration elements, such as retroviruses, retroviral-based gene therapy vectors, retrotransposons, and more. Built to work with GenomicRanges and the INSPIIRED pipeline. 
+Tools used for analysis and interpretation of foriegn DNA integration elements, such as retroviruses, retroviral-based gene therapy vectors, retrotransposons, or DNA oligos incorporated into a host genome by a Non-Homologous End Joining pathway.
 
-## List of functions:
-**generate_posid** : Creates a character vector of position IDs in the format of [chromosome(+/-/*)position] given a GRanges object or ID information.
+Functions contained in the `gintools` package can be separated into different catagories:
 
-**db_to_granges** : Converts an INSPIIRED database query into a GRanges object.
+* **Nucleotide sequence processing** - managing nucleotide sequence data from machine output, including demultiplexing, trimming, filtering, and consolidating. Alignment can be handled by the user's preferred sequence aligner (BLAT, BWA, ...).
 
-**unique_granges** : Considers and keeps metadata columns when identifying unique ranges within a GRanges object.
+* **Alignment interpretation** - interpret alignment information from PSL or SAM/BAM inputs. Identify important locations, standarize across samples, or resolve edges of observed nucleotide alignments to help reduce noise inherent in the data from PCR amplification and sequencing.
 
-**track_clones** : Returns a GRangesList of integration sites shared between multiple GRanges objects.
+* **Analytics** - functions designed to assist in analysis of processed data. Track observations across specimens, determine abundances of clones, or consolidate data into a summary of observations. 
 
-**condense_intsites** : Returns a GRanges object containing a single integration site in each row, removing all breakpoint information.
+* **Utilities** - functions designed to assist with the other catagories and serve to make seemingly simple operations just that. 
 
-**determine_abundance** : Returns a data.frame with position ids and abundances, calculated by the number of unique fragment lengths or utilizing the sonicLength package.
+## Install
+To install `gintools`, simply run the following command within an R session:
 
-**pop_calcs** : Calculations for describing features of populations, i.e. Shannon Diversity, Clonality, Gini Index ...
+```
+devtools::install_github("https://github.com/cnobles/gintools.git")
 
-**standardize_sites** : Returns a GRanges object where the site positions have been standardized with all other sites in the dataset which are within the gap distance.
+# Or
 
-**refine_breakpoints** : Returns a GRanges object where the break point positions have been adjused based on positional clusterting and read counts within the dataset and specified distances.
+devtools::install_github("cnobles/gintools")
+```
 
-**vzip** : Combines two or more vectors in a "zipping" fashion and returns a single vector.
+## Functions by catagory
+
+#### Nucleotide sequence processing
+
+
+#### Alignment interpretation
+* **standardize_sites** : Returns a GRanges object where the site positions have been standardized with all other sites in the dataset which are within the gap distance.
+* **refine_breakpoints** : Returns a GRanges object where the break point positions have been adjused based on positional clusterting and read counts within the dataset and specified distances.
+
+
+#### Analytics
+* **track_clones** : Returns a GRangesList of integration sites shared between multiple GRanges objects.
+* **condense_intsites** : Returns a GRanges object containing a single integration site in each row, removing all breakpoint information.
+* **determine_abundance** : Returns a data.frame with position ids and abundances, calculated by the number of unique fragment lengths or utilizing the sonicLength package.
+
+
+#### Utilities
+* **generate_posid** : Creates a character vector of position IDs in the format of [chromosome(+/-/*)position] given a GRanges object or ID information.
+* **db_to_granges** : Converts an INSPIIRED database query into a GRanges object.
+* **unique_granges** : Considers and keeps metadata columns when identifying unique ranges within a GRanges object.
+* **pop_calcs** : Calculations for describing features of populations, i.e. Shannon Diversity, Clonality, Gini Index ...
+* **vzip** : Combines two or more vectors in a "zipping" fashion and returns a single vector.
+
+## Dependencies
+The `gintools` package depends on `R 3.2` or higher and will `Import` the following packages during installation unless they are already present:
+
+* dplyr (>= 0.7)
+* GenomicRanges (>= 1.26)
+* igraph (>= 1.0.1)
+* IRanges (>= 2.10)
+* magrittr(>= 1.0)
+* Matrix (>= 1.2)
+* parallel(>= 3.2)
+* reldist (>= 1.5)
+* S4Vectors (>= 0.12)
+
+The following packages are suggested for increased utility:
+
+* geneRxCluster
+* sonicLength
+* testthat

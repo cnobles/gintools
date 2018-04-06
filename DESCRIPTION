@@ -5,30 +5,24 @@ Authors@R: person(
   "Christopher", "Nobles", 
   email = "chris.l.nobles@gmail.com", 
   role = c("aut", "cre"))
-Description: Tools used for analysis and interpretation of genomic DNA
+Description: Tools used for analysis and interpretation of foriegn DNA
     integration elements, such as retroviruses, retroviral-based gene therapy
-    vectors, retrotransposons, and more.
+    vectors, retrotransposons, or DNA oligos incorporated into a host genome by 
+    a Non-Homologous End Joining pathway.
 Depends:
-    R (>= 3.2),
-    IRanges (>= 2.4.5),
-    GenomicRanges (>= 1.22.1),
-    igraph (>= 1.0.1),
-    Matrix (>= 1.2-2),
-    dplyr (>= 0.4.3)
+    R (>= 3.2)
 Imports:
-    dplyr,
-    GenomicRanges,
-    igraph,
-    IRanges,
-    magrittr,
-    Matrix,
-    parallel,
-    reldist,
-    S4Vectors
+    dplyr (>= 0.7),
+    GenomicRanges (>= 1.26),
+    igraph (>= 1.0.1),
+    IRanges (>= 2.10),
+    magrittr(>= 1.0),
+    Matrix (>= 1.2),
+    parallel(>= 3.2),
+    reldist (>= 1.5),
+    S4Vectors (>= 0.12)
 Suggests:
-    devtools,
     geneRxCluster,
-    roxygen2,
     sonicLength,
     testthat
 License: GNU General Public License v3

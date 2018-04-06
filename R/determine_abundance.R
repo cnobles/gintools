@@ -82,6 +82,14 @@ determine_abundance <- function(sites, grouping = NULL, replicates = NULL,
       abund_df
     }
   }else if(method == "estAbund"){
+    if(!requireNamespace("sonicLength", quietly = TRUE)){
+      stop(
+        "sonicLength package not installed. ",
+        "Please install or change method for ",
+        "abundance calculation to 'fragLen'.",
+        call. = FALSE)
+    }
+
     abundCalc <- function(locations, fragLen, replicates, group){
       group <- unique(group)
       if(length(unique(sites_df$replicates)) == 1){
