@@ -54,9 +54,9 @@ refine_breakpoints <- function(input.sites, counts.col = NULL, min.gap = 1L,
   # found.
 
   if(!is.null(counts.col)){
-    if(counts.col %in% names(GenomicRanges::mcols(input_sites))){
-      counts_pos <- grep(counts.col, names(GenomicRanges::mcols(input_sites)))
-      sites$counts <- GenomicRanges::mcols(input_sites)[,counts_pos]
+    if(counts.col %in% names(GenomicRanges::mcols(input.sites))){
+      counts_pos <- grep(counts.col, names(GenomicRanges::mcols(input.sites)))
+      sites$counts <- GenomicRanges::mcols(input.sites)[,counts_pos]
     }else{
       stop("Could not identify 'counts' column.")
     }
