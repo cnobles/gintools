@@ -78,7 +78,8 @@ unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL){
     df$counts <- df[,cols[counts_pos]]
     groups <- lapply(cols[-counts_pos], as.symbol)
     df <- dplyr::group_by_(df, .dots = groups) %>%
-      dplyr::summarise(counts = sum(counts))
+      dplyr::summarise(counts = sum(counts)) %>%
+      dplyr::ungroup()
     names(df) <- c(cols[-counts_pos], cols[counts_pos])
   }
 
