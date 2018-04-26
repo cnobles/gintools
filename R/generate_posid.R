@@ -68,6 +68,10 @@ generate_posid <- function(sites=NULL, seqnames=NULL, strand=NULL, start=NULL,
     }
   }
 
-  paste0(chr, delim, strand, delim, pos)
+  if(length(chr) == 0 & length(strand) == 0 & length(pos) == 0){
+    return(character())
+  }else{
+    return(paste0(chr, delim, strand, delim, pos))
+  }
 }
 
