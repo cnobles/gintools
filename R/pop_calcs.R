@@ -52,12 +52,24 @@ calc_shannon <- function(x, base = exp(1)){
   shannon <- sum(shannon)
   shannon
 }
+
 #' @describeIn pop_calcs Calculate gini index.
-calc_gini <- function(x){
-  x <- x[!is.na(x)]
-  x <- x/sum(x)
-  gini <- reldist::gini(x)
-  gini
+calc_gini <- function(x, wt = NULL){
+  if(is.null(wt)) wt <- rep(1, length(x))
+  
+  not_na <- which(!is.na(x))
+  wt <- wt[not_na]
+  x <- x[not_na]
+
+  wt <- wt[order(x)]/sum(wt)  
+  x <- x[order(x)]/sum(x)
+
+  cum_wt <- cumsum(wt)
+  cum_prod <- cumsum(x * wt)
+  
+  rel_prod <- cum_prod / cum_prod[length(cum_prod)]
+  sum(rel_prod[-1] * cum_wt[-length(cum_wt)]) -
+    sum(rel_prod[-length(rel_prod)] * cum_wt[-1])
 }
 
 #' @describeIn pop_calcs Calculate Entropy as defined by Adaptive Biotech.

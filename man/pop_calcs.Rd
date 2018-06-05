@@ -13,7 +13,7 @@ pop_calcs(x, calc)
 
 calc_shannon(x, base = exp(1))
 
-calc_gini(x)
+calc_gini(x, wt = NULL)
 
 calc_entropy(x)
 
