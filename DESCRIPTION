@@ -12,7 +12,7 @@ Description: Tools used for analysis and interpretation of foriegn DNA
 Depends:
     R (>= 3.2)
 Imports:
-    dplyr (>= 0.7),
+    dplyr (>= 0.5),
     GenomicRanges (>= 1.26),
     igraph (>= 1.0.1),
     IRanges (>= 2.10),
