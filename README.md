@@ -25,6 +25,7 @@ devtools::install_github("cnobles/gintools")
 ## Functions by catagory
 
 #### Nucleotide sequence processing
+* **banmat** : A binary ambiguous nucleotide matrix based on NUC4.4.
 
 
 #### Alignment interpretation
@@ -36,6 +37,7 @@ devtools::install_github("cnobles/gintools")
 * **track_clones** : Returns a GRangesList of integration sites shared between multiple GRanges objects.
 * **condense_intsites** : Returns a GRanges object containing a single integration site in each row, removing all breakpoint information.
 * **determine_abundance** : Returns a data.frame with position ids and abundances, calculated by the number of unique fragment lengths or utilizing the sonicLength package.
+* **cluster_kv** : Returns the cluster or group membership based on connections between key nodes based on supplied values.
 
 
 #### Utilities
@@ -44,6 +46,8 @@ devtools::install_github("cnobles/gintools")
 * **unique_granges** : Considers and keeps metadata columns when identifying unique ranges within a GRanges object.
 * **pop_calcs** : Calculations for describing features of populations, i.e. Shannon Diversity, Clonality, Gini Index ...
 * **vzip** : Combines two or more vectors in a "zipping" fashion and returns a single vector.
+* **vintersect** : Identify intersecting values in two or more vectors.
+* **vcollapse** : Collapse row contents into a single vector from a data.frame or matrix.
 
 ## Dependencies
 The `gintools` package depends on `R 3.2` or higher and will `Import` the following packages during installation unless they are already present:
@@ -55,7 +59,6 @@ The `gintools` package depends on `R 3.2` or higher and will `Import` the follow
 * magrittr(>= 1.0)
 * Matrix (>= 1.2)
 * parallel(>= 3.2)
-* reldist (>= 1.5)
 * S4Vectors (>= 0.12)
 
 The following packages are suggested for increased utility:
