@@ -19,7 +19,8 @@
 #' @usage
 #' vintersect(..., limit = NULL)
 #'
-#' @param ... a series of vectors to compare against eachother.
+#' @param ... a series of vectors to compare against eachother, either 
+#' independently input or in a list.
 #' @param limit integer The number of minimum observations of a single value 
 #' before it is included in the output. Defaults to the number of input vectors,
 #' but can be reduce to increase the number of returned values.
@@ -35,7 +36,11 @@
 #' @export
 
 vintersect <- function(..., limit = NULL){
-  v <- list(...)
+  if(is.list(...)){
+    v <- c(...)
+  }else{
+    v <- list(...)
+  }
   stopifnot(all(sapply(v, is.vector)))
   if(is.null(limit)) limit <- length(v)
   stopifnot(limit <= length(v))

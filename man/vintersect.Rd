@@ -7,7 +7,8 @@
 vintersect(..., limit = NULL)
 }
 \arguments{
-\item{...}{a series of vectors to compare against eachother.}
+\item{...}{a series of vectors to compare against eachother, either 
+independently input or in a list.}
 
 \item{limit}{integer The number of minimum observations of a single value 
 before it is included in the output. Defaults to the number of input vectors,
