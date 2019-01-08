@@ -15,7 +15,7 @@ write_demultiplexed_sequences(read_file_path, multiplexed_data, out_folder,
 \item{type}{character identifying the read class (R1, I1, I2, R2).}
 
 \item{read_name_pattern}{regular expression to be applied to the sequence 
-names for identification. Default: "[\w\:\-\+]+".}
+names for identification. Default: "[\\w\\:\\-\\+]+".}
 
 \item{compress}{logical indicating if the output files should be gzip 
 compressed (.gz, default) or uncompressed.}
