@@ -21,6 +21,7 @@
 #' unique values.
 #' @param counts.col character string specifying the name of the column to use
 #' as counts.
+#' @param rm.dup.cols logical, if TRUE remove columns with colnames suffixed ".1" that are extant without suffix 
 #'
 #' @examples
 #' gr <- gintools:::generate_test_granges(
@@ -49,7 +50,7 @@
 #' @importFrom magrittr %>%
 #' @export
 
-unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL){
+unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL, rm.dup.cols = NULL){
   # Checks and balance
   if(!class(sites) == "GRanges"){
     stop("Sites object is not a GRanges class.")}
@@ -82,7 +83,13 @@ unique_granges <- function(sites, sum.counts = FALSE, counts.col = NULL){
       dplyr::ungroup()
     names(df) <- c(cols[-counts_pos], cols[counts_pos])
   }
-
+  
+  if(!is.null(rm.dup.cols)){
+    dup_cols <- paste0(colnames(df), ".1")
+    dup_cols <- dup_cols[dup_cols %in% colnames(df)]
+    df <- dplyr::distinct(df) %>%
+          dplyr::select(-!!dup_cols)
+  }
   # Rebuild GRanges object
   gr <- GenomicRanges::GRanges(
     seqnames = df$seqnames,
