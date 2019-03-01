@@ -63,6 +63,11 @@ The `gintools` package depends on `R 3.2` or higher and will `Import` the follow
 
 The following packages are suggested for increased utility:
 
+* Biostrings
+* digest
 * geneRxCluster
+* plyr
+* ShortRead
+* stringr
 * sonicLength
 * testthat

@@ -1,6 +1,6 @@
 Package: gintools
 Title: Genomic DNA Integration Analysis Tools
-Version: 0.1.1
+Version: 0.1.2
 Authors@R: person(
   "Christopher", "Nobles", 
   email = "chris.l.nobles@gmail.com", 
@@ -21,7 +21,12 @@ Imports:
     parallel(>= 3.2),
     S4Vectors (>= 0.12)
 Suggests:
+    Biostrings,
+    digest,
     geneRxCluster,
+    plyr,
+    ShortRead,
+    stringr,
     sonicLength,
     testthat
 License: GNU General Public License v3

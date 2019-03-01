@@ -35,9 +35,9 @@ red.sites <- reduce(
   flank(gr, -1, start = TRUE),
   min.gapwidth = 0L,
   with.revmap = TRUE)
-red.sites$siteID <- seq(1:length(red.sites))
+red.sites$siteID <- seq_along(red.sites)
 revmap <- as.list(red.sites$revmap)
-red.sites$abundance <- sapply(revmap, length)
+red.sites$abundance <- lengths(revmap)
 red.hits <- GenomicRanges::as.data.frame(
   findOverlaps(red.sites, maxgap = 1L, drop.self = TRUE))
 red.hits <- red.hits \%>\%

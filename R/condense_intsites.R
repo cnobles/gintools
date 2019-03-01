@@ -39,7 +39,7 @@
 #'
 #' @examples
 #' gr <- gintools:::generate_test_granges()
-#' std.gr <- standardize_intsites(gr)
+#' std.gr <- standardize_sites(gr)
 #' condense_intsites(std.gr)
 #'
 #' condense_intsites(std.gr, return.abundance = TRUE)
