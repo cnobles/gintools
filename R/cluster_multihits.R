@@ -26,8 +26,8 @@
 #' associated together. For example, the read name can be used here to show
 #' which alignments were associated with the same read.
 #'
-#' @param gap an integer designating the nucleotide distance or window for which
-#' to group integration sites.
+#' @param max_gap an integer designating the nucleotide distance or window for 
+#' which to group integration sites.
 #'
 #' @param iterations integer The number of interations of cluster generation to
 #' perform and the number of random subsets that will be made from the data.

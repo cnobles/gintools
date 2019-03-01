@@ -36,7 +36,7 @@ sites within the given GRanges object based on the unique fragment length
 }
 \examples{
 gr <- gintools:::generate_test_granges()
-std.gr <- standardize_intsites(gr)
+std.gr <- standardize_sites(gr)
 
 determine_abundance(std.gr)
 

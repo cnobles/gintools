@@ -14,6 +14,9 @@ or ranges (one alignment per row) and containing several columns, inlcluding
 "ID" (read identifier) and "key_pair" (unique identifier R2 and R1
 sequences).}
 
+\item{max_gap}{an integer designating the nucleotide distance or window for 
+which to group integration sites.}
+
 \item{iterations}{integer The number of interations of cluster generation to
 perform and the number of random subsets that will be made from the data.
 More iterations leads to less overhead memory and more time required.}
@@ -22,9 +25,6 @@ More iterations leads to less overhead memory and more time required.}
 GRanges object given in 'multihits' which designates which ranges are
 associated together. For example, the read name can be used here to show
 which alignments were associated with the same read.}
-
-\item{gap}{an integer designating the nucleotide distance or window for which
-to group integration sites.}
 }
 \description{
 Given a GRanges object of integration sites which align to

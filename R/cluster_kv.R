@@ -4,7 +4,7 @@
 #' values provided for the keys. Mutliple formats for `return` are available.
 #' 
 #' @usage cluster_kv(key, val)
-#' @usage cluster_kv(key, val, return = "data.frame")
+#' @usage cluster_kv(key, val, return = "standard")
 #' 
 #' @description Function for clustering keys based on value content. Clustering
 #' or grouping is solely based on presence / absence of values across keys. For
