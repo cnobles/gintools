@@ -85,7 +85,10 @@ standardize_sites <- function(input.sites, counts.col = NULL, min.gap = 1L,
 
   # Identify which sites are adjacent to each other
   red_hits <- GenomicRanges::as.data.frame(
-    GenomicRanges::findOverlaps(red_sites, maxgap = min.gap, drop.self = TRUE))
+    GenomicRanges::findOverlaps(
+      red_sites, maxgap = min.gap - 1L, drop.self = TRUE
+    )
+  )
 
   # Organize data and filter for constructing directed graph
   red_hits <- red_hits %>%

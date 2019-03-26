@@ -75,7 +75,7 @@ track_clones <- function(sites.list, gap = 5L, track.origin = TRUE,
   # Identify shared sites across listed objects
   ovlp_grps <- GenomicRanges::findOverlaps(
     GenomicRanges::flank(grl_sites, width = -1, start = TRUE),
-    maxgap = gap,
+    maxgap = gap - 1L,
     drop.self = TRUE,
     drop.redundant = TRUE
   )
@@ -90,7 +90,7 @@ track_clones <- function(sites.list, gap = 5L, track.origin = TRUE,
         hits <- GenomicRanges::findOverlaps(
           GenomicRanges::flank(query, -1, start = TRUE),
           GenomicRanges::flank(subject, -1, start = TRUE),
-          maxgap = gap)
+          maxgap = gap - 1L)
         if(length(hits) > 0){
           sites <- c(
             query[S4Vectors::queryHits(hits)],

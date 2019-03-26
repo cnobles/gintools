@@ -39,7 +39,7 @@ red.sites$siteID <- seq_along(red.sites)
 revmap <- as.list(red.sites$revmap)
 red.sites$fragLengths <- lengths(revmap)
 red.hits <- GenomicRanges::as.data.frame(
-  findOverlaps(red.sites, maxgap = 1L, drop.self = TRUE))
+  findOverlaps(red.sites, maxgap = 0L, drop.self = TRUE))
 red.hits <- red.hits \%>\%
   mutate(q_pos = start(red.sites[queryHits])) \%>\%
   mutate(s_pos = start(red.sites[subjectHits])) \%>\%

@@ -1,6 +1,6 @@
 Package: gintools
 Title: Genomic DNA Integration Analysis Tools
-Version: 0.1.2
+Version: 0.1.3
 Authors@R: person(
   "Christopher", "Nobles", 
   email = "chris.l.nobles@gmail.com", 
@@ -10,10 +10,10 @@ Description: Tools used for analysis and interpretation of foriegn DNA
     vectors, retrotransposons, or DNA oligos incorporated into a host genome by 
     a Non-Homologous End Joining pathway.
 Depends:
-    R (>= 3.2)
+    R (>= 3.4)
 Imports:
     dplyr (>= 0.5),
-    GenomicRanges (>= 1.26),
+    GenomicRanges (>= 1.30),
     igraph (>= 1.0.1),
     IRanges (>= 2.10),
     magrittr(>= 1.0),

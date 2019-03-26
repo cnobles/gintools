@@ -35,7 +35,7 @@
 #' revmap <- as.list(red.sites$revmap)
 #' red.sites$fragLengths <- lengths(revmap)
 #' red.hits <- GenomicRanges::as.data.frame(
-#'   findOverlaps(red.sites, maxgap = 1L, drop.self = TRUE))
+#'   findOverlaps(red.sites, maxgap = 0L, drop.self = TRUE))
 #' red.hits <- red.hits %>%
 #'   mutate(q_pos = start(red.sites[queryHits])) %>%
 #'   mutate(s_pos = start(red.sites[subjectHits])) %>%
@@ -66,11 +66,18 @@
 
 connect_satalite_vertices <- function(red.sites, graph, gap, bias){
   clus_mem <- igraph::clusters(graph)$membership
+  
   clus_ranges <- unlist(GenomicRanges::reduce(
     GenomicRanges::split(red.sites, clus_mem),
-    min.gapwidth = (gap-1)))
+    min.gapwidth = (gap-1)
+  ))
+  
   sata_hits <- as.data.frame(
-    GenomicRanges::findOverlaps(clus_ranges, maxgap = gap, drop.self = TRUE))
+    GenomicRanges::findOverlaps(
+      clus_ranges, maxgap = gap - 1L, drop.self = TRUE
+    )
+  )
+  
   names(sata_hits) <- c("source.clus", "sata.clus")
 
   red_df <- GenomicRanges::as.data.frame(red.sites)

@@ -294,7 +294,7 @@
                      GRanges(IRanges(start=value,width=1),
                              seqnames=posID2, freq=freq))
       pos.overlap <- as.data.frame(as.matrix(findOverlaps(pos.be, pos.ab,
-                                                          maxgap=windowSize,
+                                                          maxgap=windowSize-1L,
                                                           ignore.strand=TRUE)))
 
       # for overlapping values, merge them with the biggest respective
@@ -376,7 +376,7 @@
       res <- as.data.frame(findOverlaps(sites.gr, drop.self=TRUE,
                                                   drop.redundant=FALSE,
                                                   select="all",
-                                                  maxgap=windowSize))
+                                                  maxgap=windowSize-1L))
       if(nrow(res)>0) {
         # add accessory columns to dictate decision making!
         # q = query, s = subject, val = value, freq = frequency of query/subject
