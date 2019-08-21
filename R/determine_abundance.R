@@ -39,19 +39,22 @@
 
 determine_abundance <- function(sites, grouping = NULL, replicates = NULL,
                                 method = "fragLen"){
+  
   sites$posid <- generate_posid(sites)
   in_mcols <- GenomicRanges::mcols(sites)
   GenomicRanges::mcols(sites) <- NULL
 
   grp <- which(grouping == names(in_mcols))
-  if(length(grp) != 0){
+  
+  if( length(grp) != 0 ){
     group <- as.character(in_mcols[,grp])
   }else{
     group <- rep("group1", length(sites))
   }
 
   reps <- which(replicates == names(in_mcols))
-  if(length(reps) != 0){
+  
+  if( length(reps) != 0 ){
     replicates <- as.character(in_mcols[,reps])
   }else{
     replicates <- rep("1", length(sites))
@@ -61,10 +64,13 @@ determine_abundance <- function(sites, grouping = NULL, replicates = NULL,
     "posid"= generate_posid(sites),
     "fragLen" = GenomicRanges::width(sites),
     "replicates" = replicates,
-    "group" = group)
+    "group" = group
+  )
 
-  if(method == "fragLen"){
+  if( method == "fragLen" ){
+    
     abundCalc <- function(locations, fragLen, replicates, group){
+      
       group <- unique(group)
       dfr <- data.frame(
         "loci.id" = locations,
@@ -80,29 +86,36 @@ determine_abundance <- function(sites, grouping = NULL, replicates = NULL,
         "estAbund" = abundances,
         "group" = rep(group, length(abundances)))
       abund_df
+    
     }
-  }else if(method == "estAbund"){
-    if(!requireNamespace("sonicLength", quietly = TRUE)){
+    
+  }else if( method == "estAbund" ){
+    
+    if( !requireNamespace("sonicLength", quietly = TRUE) ){
       stop(
         "sonicLength package not installed. ",
         "Please install or change method for ",
         "abundance calculation to 'fragLen'.",
-        call. = FALSE)
+        call. = FALSE
+      )
     }
 
     abundCalc <- function(locations, fragLen, replicates, group){
+      
       group <- unique(group)
-      if(length(unique(sites_df$replicates)) == 1){
+      
+      if( length(unique(sites_df$replicates)) == 1 ){
         theta_list <- sonicLength::estAbund(
           locations=locations, lengths=fragLen)
       }else{
         theta_list <- sonicLength::estAbund(
           locations=locations, lengths=fragLen, replicates=replicates)
       }
+      
       posid <- names(theta_list$theta)
       abundances <- theta_list$theta
 
-      if(length(unique(sites_df$replicates)) == 1){
+      if( length(unique(sites_df$replicates)) == 1 ){
         abund_df <- data.frame("posid" = posid,"estAbund" = abundances)
       }else{
         abund_df <- data.frame(
@@ -112,9 +125,13 @@ determine_abundance <- function(sites, grouping = NULL, replicates = NULL,
       }
       abund_df$group <- group
       abund_df
+      
     }
+    
   }else{
+    
     stop("Must choose either fragLen or estAbund for method.")
+    
   }
 
   sites_list <- split(sites_df, sites_df$group)
@@ -124,23 +141,36 @@ determine_abundance <- function(sites, grouping = NULL, replicates = NULL,
       locations = x$posid,
       fragLen = x$fragLen,
       replicates = x$replicates,
-      group = x$group)
+      group = x$group
+    )
   })
 
   abund_list <- lapply(abund_list, function(x){
-    x <- x %>%
+    
+    x %>%
       dplyr::mutate(
         totalAbund = sum(x$estAbund),
         estAbund = round(estAbund),
         relAbund = estAbund/totalAbund,
-        relRank = rank(-1*relAbund, ties.method = "max"))
-    x
+        relRank = rank(-1*relAbund, ties.method = "max")
+      )
+
   })
 
   abund_df <- dplyr::bind_rows(abund_list)
-
   abund_df$totalAbund <- NULL
-
-  abund_df <- abund_df[, c("posid", "group", "estAbund", "relAbund", "relRank")]
+  
+  if( nrow(abund_df) > 0 ){
+    abund_df <- abund_df[
+      , c("posid", "group", "estAbund", "relAbund", "relRank")
+    ]
+  }else{
+    abund_df <- data.frame(
+      "posid" = character(), "group" = character(), "estAbund" = numeric(),
+      "relAbund" = numeric(), "relRank" = integer(), stringsAsFactors = FALSE
+    )
+  }
+  
   abund_df
+  
 }

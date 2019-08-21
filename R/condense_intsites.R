@@ -50,17 +50,19 @@
 condense_intsites <- function(sites.to.condense, grouping = NULL,
                               return.abundance = FALSE, method = "fragLen",
                               replicates = "replicates", quiet = TRUE){
+  
   mcols <- GenomicRanges::mcols(sites.to.condense)
 
   grp <- which(grouping == names(mcols))
-  if(length(grp) != 0){
+  
+  if( length(grp) != 0 ){
     group <- as.character(mcols[,grp])
   }else{
     group <- rep("group1", length(sites.to.condense))
   }
 
   sites.to.condense$posid <- generate_posid(sites.to.condense)
-  sites.to.condense$group.id <- paste0(group, "^", sites.to.condense$posid)
+  sites.to.condense$group.id <- paste0(group, sites.to.condense$posid)
 
   group_ids <- S4Vectors::unique(sites.to.condense$group.id)
   first_hits <- match(group_ids, sites.to.condense$group.id)
@@ -68,11 +70,14 @@ condense_intsites <- function(sites.to.condense, grouping = NULL,
   condensed_gr <- GenomicRanges::flank(sites.to.condense, -1, start = TRUE)
   condensed_gr <- condensed_gr[first_hits]
 
-  if(return.abundance){
+  if( return.abundance ){
+    
     abund_df <- determine_abundance(
       sites.to.condense, grouping = grouping,
-      replicates = replicates, method = method)
-    abund_df$group.id <- paste0(abund_df$group, "^", abund_df$posid)
+      replicates = replicates, method = method
+    )
+    
+    abund_df$group.id <- paste0(abund_df$group, abund_df$posid)
     mcols <- GenomicRanges::mcols(condensed_gr)
     all_cols <- merge(mcols, abund_df, by = "group.id")
     order <- match(condensed_gr$group.id, all_cols$group.id)
@@ -81,12 +86,17 @@ condense_intsites <- function(sites.to.condense, grouping = NULL,
     condensed_gr$posid.x <- NULL
     condensed_gr$posid.y <- NULL
     condensed_gr$posid <- generate_posid(condensed_gr)
+    
   }
+  
   condensed_gr$group.id <- NULL
   condensed_gr$group <- NULL
   names(condensed_gr) <- NULL
-  if(!quiet){
+  
+  if( !quiet ){
     message("Check to make sure all metadata columns are still relavent.")
   }
+  
   condensed_gr
+  
 }
